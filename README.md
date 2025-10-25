@@ -6,6 +6,8 @@ Adds a shopping list to the game. "+" buttons to add daily consumption is added 
 The list is grouped by Bases and is also shown in the Exchange tab. 
 Also adds a hourly profit column to the order modal.
 
+<img width="1328" height="692" alt="image" src="https://github.com/user-attachments/assets/9c8f084d-24af-4da5-9e01-9f0e06ddc9f7" />
+
 Diclaimers
 - Buying automatically is against the TOS of the game. This functionality will not be added.
 - Reloading the site deletes the current list.
