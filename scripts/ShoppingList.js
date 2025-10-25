@@ -12,7 +12,7 @@ addEventListener("click", function (event) {
     UpdateConsumptionButtons()
     UpdateShoppingListDiv()
 
-        setTimeout(async () => {
+    setTimeout(async () => {
         UpdateProductionButtons()
         UpdateConsumptionButtons()
         UpdateShoppingListDiv()
@@ -133,8 +133,14 @@ function RemoveIngredientFromShoppingList(Ingredient) {
         if (Value.has(Ingredient)) {
             let BaseEntry = ShoppingList.get(Key)
             BaseEntry.delete(Ingredient)
+
+            if (BaseEntry.size == 0) {
+                ShoppingList.delete(Key)
+            }
         }
     }
+
+    UpdateShoppingListDiv()
 }
 
 function RemoveFromShoppingList(Base, Ingredient, Amount) {
@@ -161,17 +167,19 @@ function RemoveFromShoppingList(Base, Ingredient, Amount) {
         BaseEntry.set(Ingredient, currentAmount)
     }
 
+    if (BaseEntry.size == 0) {
+        ShoppingList.delete(Base)
+    }
+
     UpdateShoppingListDiv()
 }
 
 function UpdateShoppingListDiv() {
     let SelectedView = document.getElementsByClassName("nav-link cursor-pointer py-3 active")
-
-    if(SelectedView == undefined || SelectedView.length ==0)
-    {
-      return
+    if (SelectedView == undefined || SelectedView.length == 0) {
+        return
     }
-    if ( SelectedView[0].textContent == "Base") {
+    if (SelectedView[0].textContent == "Base") {
         const MainDiv = document.querySelector("main div.container-xxl > div.row:not(gy-3)")
 
         let Div1 = GetShoppingListTable()
@@ -192,10 +200,12 @@ function UpdateShoppingListDiv() {
         }
     }
 
-    else if (SelectedView[0].textContent  == "Exchange") {
+    else if (SelectedView[0].textContent == "Exchange") {
         const MainDiv = document.querySelector("main div.container-xxl div.card-body div.row.gy-3")
 
         if (ShoppingList.size == 0) {
+            if(MainDiv.children.length <= 2)
+                return
             MainDiv.removeChild(MainDiv.children[2])
 
             MainDiv.childNodes.forEach((child) => {
@@ -272,8 +282,6 @@ function GetShoppingListTable() {
         tdRemove.appendChild(button);
     })
 
-
-
     // for each base
     ShoppingList.forEach((BaseValue, Base) => {
         let CardBase = document.createElement('div');
@@ -315,14 +323,13 @@ function GetShoppingListTable() {
 function GetIngredientImage(Ingredient) {
     let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     let use = document.createElementNS("http://www.w3.org/2000/svg", "use");
-    
+
     svg.setAttribute("width", "24");
     svg.setAttribute("height", "24");
     use.setAttribute("href", "/assets/sprite-Bex5IPo-.svg#" + Ingredient);
-    
 
     svg.appendChild(use);
     svg.className = "io ai-st flex-shrink-0 me-2";
-    
+
     return svg
 }
