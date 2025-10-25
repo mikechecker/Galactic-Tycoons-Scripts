@@ -92,7 +92,7 @@ async function UpdateProductionButtons() {
         let Row = Rows[i]
 
         if (Row.children.length > 2) {
-            return
+            Row.removeChild(Row.children[2])
         }
 
         let button = document.createElement('input');
