@@ -7,23 +7,11 @@
 // {Base{Ingrediented, Amount}}
 let ShoppingList = new Map()
 
-addEventListener("click", function (event) {
+setInterval(function () {
     UpdateProductionButtons()
     UpdateConsumptionButtons()
     UpdateShoppingListDiv()
-
-    setTimeout(async () => {
-        UpdateProductionButtons()
-        UpdateConsumptionButtons()
-        UpdateShoppingListDiv()
-    }, 100);
-
-    setTimeout(async () => {
-        UpdateProductionButtons()
-        UpdateConsumptionButtons()
-        UpdateShoppingListDiv()
-    }, 1000);
-});
+}, 100);
 
 async function UpdateConsumptionButtons() {
     const InputCol = document.getElementsByClassName("table table-hover align-middle text-end mb-1")
