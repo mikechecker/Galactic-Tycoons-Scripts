@@ -5,12 +5,22 @@
 // ==/UserScript==
 
 // {Base{Ingrediented, Amount}}
-let shoppingList = new Map()
+let ShoppingList = new Map()
 
 addEventListener("click", function (event) {
+    UpdateProductionButtons()
+    UpdateConsumptionButtons()
+    UpdateShoppingListDiv()
+
+        setTimeout(async () => {
+        UpdateProductionButtons()
+        UpdateConsumptionButtons()
+        UpdateShoppingListDiv()
+    }, 100);
+
     setTimeout(async () => {
         UpdateProductionButtons()
-      UpdateConsumptionButtons()
+        UpdateConsumptionButtons()
         UpdateShoppingListDiv()
     }, 1000);
 });
@@ -24,13 +34,12 @@ async function UpdateConsumptionButtons() {
     const Rows = InputCol[0].rows
 
 
-   if(Rows[0].children.length <= 4)
-   {
-   
-    let tdHeader = Rows[0].insertCell(-1)  
-  	tdHeader.outerHTML = '<th class="col-1"  style="white-space: nowrap !important">Shopping List</th>'
-    tdHeader.className = "col-2 cursor-pointer text-nowrap"
-     }
+    if (Rows[0].children.length <= 4) {
+
+        let tdHeader = Rows[0].insertCell(-1)
+        tdHeader.outerHTML = '<th class="col-1"  style="white-space: nowrap !important">Shopping List</th>'
+        tdHeader.className = "col-2 cursor-pointer text-nowrap"
+    }
     const Base = document.getElementsByClassName("list-group-item list-group-item-action hstack active")[0].children[0].textContent
     for (let i = 1; i < Rows.length; i++) {
         let Row = Rows[i]
@@ -40,7 +49,7 @@ async function UpdateConsumptionButtons() {
         }
 
         let td = Row.insertCell(-1)
-     
+
         let button = document.createElement('input');
         button.type = "button";
         button.value = "+"
@@ -48,7 +57,7 @@ async function UpdateConsumptionButtons() {
 
         const ingredient = Row.cells[0].children[0].children[0].children[0].attributes[0].nodeValue.split("#")[1]
         const amount = Row.cells[2].textContent
-     
+
 
         button.addEventListener('click', () => AddToShoppingList(Base, ingredient, amount));
 
@@ -78,7 +87,7 @@ async function UpdateProductionButtons() {
     }
 
     const Base = document.getElementsByClassName("list-group-item list-group-item-action hstack active")[0].children[0].textContent
-         
+
     for (let i = 1; i < Rows.length; i++) {
         let Row = Rows[i]
 
@@ -101,11 +110,11 @@ async function UpdateProductionButtons() {
 }
 
 function AddToShoppingList(Base, Ingredient, Amount) {
-    let BaseEntry = shoppingList.get(Base)
+    let BaseEntry = ShoppingList.get(Base)
 
     if (BaseEntry == undefined) {
-        shoppingList.set(Base, new Map())
-        BaseEntry = shoppingList.get(Base)
+        ShoppingList.set(Base, new Map())
+        BaseEntry = ShoppingList.get(Base)
     }
 
     let currentAmount = BaseEntry.get(Ingredient)
@@ -119,8 +128,17 @@ function AddToShoppingList(Base, Ingredient, Amount) {
     UpdateShoppingListDiv()
 }
 
+function RemoveIngredientFromShoppingList(Ingredient) {
+    for (let [Key, Value] of ShoppingList) {
+        if (Value.has(Ingredient)) {
+            let BaseEntry = ShoppingList.get(Key)
+            BaseEntry.delete(Ingredient)
+        }
+    }
+}
+
 function RemoveFromShoppingList(Base, Ingredient, Amount) {
-    let BaseEntry = shoppingList.get(Base)
+    let BaseEntry = ShoppingList.get(Base)
 
     if (BaseEntry == undefined) {
         return
@@ -133,12 +151,11 @@ function RemoveFromShoppingList(Base, Ingredient, Amount) {
 
     let currentAmount = IngredientEntry - Amount
     if (currentAmount <= 0) {
-       BaseEntry.delete(Ingredient)
+        BaseEntry.delete(Ingredient)
 
-      if(BaseEntry.size == 0)
-      {
-        shoppingList.delete(Base)
-      }
+        if (BaseEntry.size == 0) {
+            ShoppingList.delete(Base)
+        }
 
     } else {
         BaseEntry.set(Ingredient, currentAmount)
@@ -156,16 +173,15 @@ function UpdateShoppingListDiv() {
         let Div1 = GetShoppingListTable()
 
         if (MainDiv.children.length > 2) {
-            if (shoppingList.size == 0) {
+            if (ShoppingList.size == 0) {
                 MainDiv.removeChild(MainDiv.children[2])
-              console.log("test")
                 return
             }
-          
+
             MainDiv.children[2].replaceWith(Div1)
         }
         else {
-            if (shoppingList.size == 0) {
+            if (ShoppingList.size == 0) {
                 return
             }
             MainDiv.appendChild(Div1)
@@ -175,7 +191,7 @@ function UpdateShoppingListDiv() {
     else if (SelectedView == "Exchange") {
         const MainDiv = document.querySelector("main div.container-xxl div.card-body div.row.gy-3")
 
-        if (shoppingList.size == 0) {
+        if (ShoppingList.size == 0) {
             MainDiv.removeChild(MainDiv.children[2])
 
             MainDiv.childNodes.forEach((child) => {
@@ -208,7 +224,53 @@ function GetShoppingListTable() {
     let Card = document.createElement('div');
     Card.className = "card border-0 mb-4";
     Div1.appendChild(Card)
-    shoppingList.forEach((BaseValue, Base, map) => {
+
+    // Total Section
+    let CardBase = document.createElement('div');
+    CardBase.className = "card-header text-body-secondary";
+    CardBase.textContent = "Total"
+    Card.appendChild(CardBase)
+
+    let CardTotalEntry = document.createElement('div');
+    CardTotalEntry.className = "list-group list-group-flush";
+    Card.appendChild(CardTotalEntry)
+
+    let TotalTable = document.createElement('table');
+    CardTotalEntry.appendChild(TotalTable)
+
+    const TotalShoppingList = ShoppingList.entries().reduce(function (Acc, Entry) {
+        for (let [Key, Value] of Entry[1]) {
+            let CurrentAmount = Acc.get(Key) ?? 0
+            Acc.set(Key, parseInt(Value) + parseInt(CurrentAmount));
+        }
+
+        return Acc;
+    }, new Map());
+
+
+    // for each base
+    TotalShoppingList.forEach((Amount, Ingredient) => {
+        var tr = TotalTable.insertRow();
+        let tdIngredient = tr.insertCell();
+        tdIngredient.appendChild(document.createTextNode(Ingredient));
+
+        let tdAmount = tr.insertCell();
+        tdAmount.appendChild(document.createTextNode(Amount));
+
+        let button = document.createElement('input');
+        button.type = "button";
+        button.value = "-"
+        button.className = "btn btn-sm btn-secondary"
+        button.addEventListener('click', () => RemoveIngredientFromShoppingList(Ingredient));
+
+        let tdRemove = tr.insertCell();
+        tdRemove.appendChild(button);
+    })
+
+
+
+    // for each base
+    ShoppingList.forEach((BaseValue, Base) => {
         let CardBase = document.createElement('div');
         CardBase.className = "card-header text-body-secondary";
         CardBase.textContent = Base
@@ -217,6 +279,7 @@ function GetShoppingListTable() {
         let CardBaseEntry = document.createElement('div');
         CardBaseEntry.className = "list-group list-group-flush";
         Card.appendChild(CardBaseEntry)
+
         let Table = document.createElement('table');
 
         BaseValue.forEach((Amount, Ingredient, map) => {
