@@ -165,9 +165,13 @@ function RemoveFromShoppingList(Base, Ingredient, Amount) {
 }
 
 function UpdateShoppingListDiv() {
-    let SelectedView = document.getElementsByClassName("nav-link cursor-pointer py-3 active")[0].textContent
+    let SelectedView = document.getElementsByClassName("nav-link cursor-pointer py-3 active")
 
-    if (SelectedView == "Base") {
+    if(SelectedView == undefined || SelectedView.length ==0)
+    {
+      return
+    }
+    if ( SelectedView[0].textContent == "Base") {
         const MainDiv = document.querySelector("main div.container-xxl > div.row:not(gy-3)")
 
         let Div1 = GetShoppingListTable()
@@ -188,7 +192,7 @@ function UpdateShoppingListDiv() {
         }
     }
 
-    else if (SelectedView == "Exchange") {
+    else if (SelectedView[0].textContent  == "Exchange") {
         const MainDiv = document.querySelector("main div.container-xxl div.card-body div.row.gy-3")
 
         if (ShoppingList.size == 0) {
@@ -252,7 +256,8 @@ function GetShoppingListTable() {
     TotalShoppingList.forEach((Amount, Ingredient) => {
         var tr = TotalTable.insertRow();
         let tdIngredient = tr.insertCell();
-        tdIngredient.appendChild(document.createTextNode(Ingredient));
+
+        tdIngredient.appendChild(GetIngredientImage(Ingredient));
 
         let tdAmount = tr.insertCell();
         tdAmount.appendChild(document.createTextNode(Amount));
@@ -286,7 +291,7 @@ function GetShoppingListTable() {
             var tr = Table.insertRow();
 
             let tdIngredient = tr.insertCell();
-            tdIngredient.appendChild(document.createTextNode(Ingredient));
+            tdIngredient.appendChild(GetIngredientImage(Ingredient));
 
             let tdAmount = tr.insertCell();
             tdAmount.appendChild(document.createTextNode(Amount));
@@ -307,3 +312,17 @@ function GetShoppingListTable() {
     return Div1
 }
 
+function GetIngredientImage(Ingredient) {
+    let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    let use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+    
+    svg.setAttribute("width", "24");
+    svg.setAttribute("height", "24");
+    use.setAttribute("href", "/assets/sprite-Bex5IPo-.svg#" + Ingredient);
+    
+
+    svg.appendChild(use);
+    svg.className = "io ai-st flex-shrink-0 me-2";
+    
+    return svg
+}
