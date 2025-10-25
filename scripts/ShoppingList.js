@@ -7,20 +7,36 @@
 // {Base{Ingrediented, Amount}}
 let ShoppingList = new Map()
 
-setInterval(function () {
-    UpdateProductionButtons()
-    UpdateConsumptionButtons()
-    UpdateShoppingListDiv()
-}, 100);
+let UpdateInterval 
+setTimeout(()=>{UpdateInterval = setInterval(Update, 100)}, 1000);
 
-async function UpdateConsumptionButtons() {
-    const InputCol = document.getElementsByClassName("table table-hover align-middle text-end mb-1")
-    if (InputCol == undefined || InputCol.length == 0) {
+document.addEventListener('click', () => {
+    if (UpdateInterval != undefined) {
         return
     }
 
-    const Rows = InputCol[0].rows
+    UpdateInterval = setInterval(Update, 100);
+})
 
+async function Update() {
+    let Result = UpdateProductionButtons()
+    Result = Result || UpdateConsumptionButtons()
+    UpdateShoppingListDiv()
+
+    if (Result) {
+
+        clearInterval(UpdateInterval);
+        UpdateInterval = undefined
+    }
+}
+
+function UpdateConsumptionButtons() {
+    const InputCol = document.getElementsByClassName("table table-hover align-middle text-end mb-1")
+    if (InputCol == undefined || InputCol.length == 0) {
+        return false;
+    }
+
+    const Rows = InputCol[0].rows
 
     if (Rows[0].children.length <= 4) {
 
@@ -28,7 +44,13 @@ async function UpdateConsumptionButtons() {
         tdHeader.outerHTML = '<th class="col-1"  style="white-space: nowrap !important">Shopping List</th>'
         tdHeader.className = "col-2 cursor-pointer text-nowrap"
     }
+
     const Base = document.getElementsByClassName("list-group-item list-group-item-action hstack active")[0].children[0].textContent
+    
+    if(Rows.length < 2){
+        return false;
+    }
+
     for (let i = 1; i < Rows.length; i++) {
         let Row = Rows[i]
 
@@ -45,36 +67,40 @@ async function UpdateConsumptionButtons() {
 
         const ingredient = Row.cells[0].children[0].children[0].children[0].attributes[0].nodeValue.split("#")[1]
         const amount = Row.cells[2].textContent
-
-
         button.addEventListener('click', () => AddToShoppingList(Base, ingredient, amount));
 
         td.appendChild(button);
     }
+
+    return true
 }
 
-async function UpdateProductionButtons() {
+function UpdateProductionButtons() {
     const SummaryDiv = document.getElementsByClassName("user-select-none p-2 px-3")
     if (SummaryDiv == undefined || SummaryDiv.length == 0) {
-        return
+        return false
     }
 
     if (SummaryDiv[0].textContent.includes("Daily Production") == false) {
-        return
+        return false
     }
 
     const InputCol = SummaryDiv[0].parentElement.getElementsByClassName("table table-transparent table-hover mb-0")
     if (InputCol == undefined || InputCol.length == 0) {
-        return
+        return false
     }
 
     const Rows = InputCol[0].rows
 
     if (Rows[0].textContent != "Input") {
-        return
+        return false
     }
 
     const Base = document.getElementsByClassName("list-group-item list-group-item-action hstack active")[0].children[0].textContent
+
+  if(Rows.length < 2){
+        return false;
+    }
 
     for (let i = 1; i < Rows.length; i++) {
         let Row = Rows[i]
@@ -95,6 +121,8 @@ async function UpdateProductionButtons() {
 
         Row.appendChild(button, Row.cells[1]);
     }
+
+    return true
 }
 
 function AddToShoppingList(Base, Ingredient, Amount) {
@@ -192,7 +220,7 @@ function UpdateShoppingListDiv() {
         const MainDiv = document.querySelector("main div.container-xxl div.card-body div.row.gy-3")
 
         if (ShoppingList.size == 0) {
-            if(MainDiv.children.length <= 2)
+            if (MainDiv.children.length <= 2)
                 return
             MainDiv.removeChild(MainDiv.children[2])
 
