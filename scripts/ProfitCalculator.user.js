@@ -8,13 +8,24 @@
 let ExchangePrices = []
 
 setTimeout(async () => {
-    const response = await fetch('https://api.g2.galactictycoons.com/public/exchange/mat-prices');
-    ExchangePrices = (await response.json()).prices;
+    let response = await fetch('https://api.g2.galactictycoons.com/public/exchange/mat-prices',{
+        method: 'GET'
+    });
+    let Exchange = await response.json()
+    ExchangePrices = Exchange.prices;
+
 }, 100);
 
 setInterval(async function () {
-    const response = await fetch('https://api.g2.galactictycoons.com/public/exchange/mat-prices');
-    ExchangePrices = (await response.json()).prices;
+
+    let response = await fetch('https://api.g2.galactictycoons.com/public/exchange/mat-prices',{
+        method: 'GET'
+    });
+
+    let Exchange = await response.json()
+
+    ExchangePrices = Exchange.prices;
+
 }, 10000)
 
 setInterval(function () {
