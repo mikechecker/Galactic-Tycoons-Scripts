@@ -20,10 +20,11 @@ Adds profit per hour to all recipes in the order modal and the recipes in the En
 Since I work mainly with c++ the coding style is currently not consistent. I will tell you it is a horrible state. Checking the code is at your own discretion.
 
 # Installation
+GreaseMonkey scripts are scripts that run in your web browser on specific websites and adjust the site. They can add or remove button, text, etc. 
 To install any scripts you need to install the extension [Greasemonkey](https://addons.mozilla.org/en-US/firefox/addon/greasemonkey/) for Firefox or Tempermonkey for Chrome.
 These Scripts were not tested in Chrome yet. Undesired behaviour may be expected.
 
-Afterwars go to the script you want to install. Click on one of the links to any script you like below and Greasemonkey will ask you if you want to install it.
+After wards go to the script you want to install. Click on one of the links to any script you like below and Greasemonkey will ask you if you want to install it.
 A more detailed explanation can be found in the [GreaseMonkey Wiki](https://wiki.greasespot.net/Greasemonkey_Manual:Installing_Scripts)
 
 ## Installation Links
