@@ -7,26 +7,52 @@
 // {Base{Ingrediented, Amount}}
 let ShoppingList = new Map()
 
-let UpdateInterval 
-setTimeout(()=>{UpdateInterval = setInterval(Update, 100)}, 1000);
+let ShoppingListInterval
+let AddingButtonsListInterval
+
+setTimeout(() => {
+    ShoppingListInterval = setInterval(Update, 100)
+    AddingButtonsListInterval = setInterval(Update, 100)
+}, 1000);
 
 document.addEventListener('click', () => {
-    if (UpdateInterval != undefined) {
-        return
+    if (ShoppingListInterval == undefined) {
+        ShoppingListInterval = setInterval(UpdateShoppingList, 100);
+    }
+    if (AddingButtonsListInterval == undefined) {
+        AddingButtonsListInterval = setInterval(UpdateButtons, 100);
     }
 
-    UpdateInterval = setInterval(Update, 100);
 })
 
-async function Update() {
-    let Result = UpdateProductionButtons()
-    Result = Result || UpdateConsumptionButtons()
-    UpdateShoppingListDiv()
+async function UpdateShoppingList() {
+    console.log("UpdateShoppingList")
+
+    if (UpdateShoppingListDiv()) {
+        clearInterval(ShoppingListInterval);
+        ShoppingListInterval = undefined
+    }
+}
+
+async function UpdateButtons() {
+    console.log("UpdateButtons")
+    let Result = false
+
+    const SummaryDiv = document.getElementsByClassName("user-select-none p-2 px-3")
+    if (SummaryDiv && SummaryDiv.length > 0) {
+        if (SummaryDiv[0].textContent.includes("Daily Production")) {
+             Result = Result || UpdateProductionButtons()
+        }
+    }
+
+    const InputCol = document.getElementsByClassName("table table-hover align-middle text-end mb-1")
+    if (InputCol  && InputCol.length > 0) {
+           Result = Result || UpdateConsumptionButtons()
+    }
 
     if (Result) {
-
-        clearInterval(UpdateInterval);
-        UpdateInterval = undefined
+        clearInterval(AddingButtonsListInterval);
+        AddingButtonsListInterval = undefined
     }
 }
 
@@ -46,8 +72,8 @@ function UpdateConsumptionButtons() {
     }
 
     const Base = document.getElementsByClassName("list-group-item list-group-item-action hstack active")[0].children[0].textContent
-    
-    if(Rows.length < 2){
+
+    if (Rows.length < 2) {
         return false;
     }
 
@@ -98,7 +124,7 @@ function UpdateProductionButtons() {
 
     const Base = document.getElementsByClassName("list-group-item list-group-item-action hstack active")[0].children[0].textContent
 
-  if(Rows.length < 2){
+    if (Rows.length < 2) {
         return false;
     }
 
@@ -193,7 +219,7 @@ function RemoveFromShoppingList(Base, Ingredient, Amount) {
 function UpdateShoppingListDiv() {
     let SelectedView = document.getElementsByClassName("nav-link cursor-pointer py-3 active")
     if (SelectedView == undefined || SelectedView.length == 0) {
-        return
+        return false
     }
     if (SelectedView[0].textContent == "Base") {
         const MainDiv = document.querySelector("main div.container-xxl > div.row:not(gy-3)")
@@ -210,7 +236,7 @@ function UpdateShoppingListDiv() {
         }
         else {
             if (ShoppingList.size == 0) {
-                return
+                return true
             }
             MainDiv.appendChild(Div1)
         }
@@ -227,7 +253,7 @@ function UpdateShoppingListDiv() {
             MainDiv.childNodes.forEach((child) => {
                 child.style.width = "50%"
             })
-            return
+            return false
         }
 
         MainDiv.childNodes.forEach((child) => {
@@ -245,6 +271,7 @@ function UpdateShoppingListDiv() {
         }
     }
 
+    return true
 }
 
 function GetShoppingListTable() {
