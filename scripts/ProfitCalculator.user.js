@@ -8,10 +8,13 @@
 let ExchangePrices = []
 
 setTimeout(async () => {
+    console.log("1")
     let response = await fetch('https://api.g2.galactictycoons.com/public/exchange/mat-prices',{
         method: 'GET'
     });
+    console.log(response)
     let Exchange = await response.json()
+      console.log("3")
     ExchangePrices = Exchange.prices;
 
 }, 100);
@@ -26,12 +29,13 @@ setInterval(async function () {
 
     ExchangePrices = Exchange.prices;
 
-}, 10000)
+}, 5 * 60 * 1000)
 
 setInterval(function () {
     if (ExchangePrices.length == 0) {
         return
     }
+
 
     updateEncyclpediaInfo()
     updateProductionInfo()
@@ -58,6 +62,7 @@ async function updateProductionInfo() {
 
     // get all Ingredients
     for (let i = 0; i < RecipeRows.length; i++) {
+      let Row = RecipeRows[i]
         if (Row.children.length < 4) {
             return
         }
