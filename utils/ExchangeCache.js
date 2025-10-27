@@ -52,6 +52,12 @@ async function updateExchangeData() {
     const exchangeResponse = await fetch('https://api.g2.galactictycoons.com/public/exchange/mat-prices', {
         method: 'GET'
     });
+    
+    // Fallback if API is down or bugdet is exceeded
+    if (exchangeResponse.status != 200) {
+        exchangePrices = await getData()
+        return
+    }
 
     let exchange = await exchangeResponse.json()
 
