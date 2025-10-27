@@ -5,51 +5,60 @@
 // @run-at document-end
 // ==/UserScript==
 
-let ExchangePrices = []
-
-setTimeout(async () => {
-    console.log("1")
-    let response = await fetch('https://api.g2.galactictycoons.com/public/exchange/mat-prices',{
-        method: 'GET'
-    });
-    console.log(response)
-    let Exchange = await response.json()
-      console.log("3")
-    ExchangePrices = Exchange.prices;
-
-}, 100);
-
-setInterval(async function () {
-
-    let response = await fetch('https://api.g2.galactictycoons.com/public/exchange/mat-prices',{
-        method: 'GET'
-    });
-
-    let Exchange = await response.json()
-
-    ExchangePrices = Exchange.prices;
-
-}, 5 * 60 * 1000)
-
 setInterval(function () {
-    if (ExchangePrices.length == 0) {
+    if (exchangePrices.length == 0) {
         return
     }
 
+    if (!gameData) {
+        return
+    }
 
     updateEncyclpediaInfo()
     updateProductionInfo()
 }, 100)
 
 async function updateProductionInfo() {
-    let RecipeTbody = document.querySelector('tbody[data-tutorial="recipe-select"]')
+    let RecipeTbody = document.querySelector('div.modal-body table tbody')
     if (!RecipeTbody) {
         return
     }
 
+    const titleDiv = document.querySelector('h5[class="modal-title"]')
+    if (!titleDiv) {
+        return
+    }
+
+    // Building cost per hour
+    const buildingName = titleDiv.textContent.split(" - ")[0]
+    const buildingData = findBuildingFromName(buildingName)
+    if (!buildingData) {
+        return
+    }
+    const consumables = buildingData.workersNeeded.reduce((acc, workersAmount, index) => {
+        if (workersAmount == 0)
+            return acc
+
+        gameData.workers[index].consumables.forEach(consumable => {
+            const existing = acc.get(consumable.matId)
+            if (existing) {
+                existing += consumable.amount * workersAmount / 1000
+            } else {
+                acc.set(consumable.matId, consumable.amount * workersAmount / 1000)
+            }
+        })
+        return acc
+    }, new Map())
+
+    // convert consumables to cost per hour
+    let costPerHour = 0
+    for (let [key, value] of consumables) {
+        costPerHour = + exchangePrices.find((element) => element.matId == key).avgPrice * value / 24 / 100
+    }
+
     let RecipeSelectionHeader = RecipeTbody.parentElement.querySelector('thead tr')
 
-    if (RecipeSelectionHeader.children.length != 4) {
+    if (RecipeSelectionHeader.lastChild.textContent == "Profit") {
         return
     }
 
@@ -62,7 +71,7 @@ async function updateProductionInfo() {
 
     // get all Ingredients
     for (let i = 0; i < RecipeRows.length; i++) {
-      let Row = RecipeRows[i]
+        let Row = RecipeRows[i]
         if (Row.children.length < 4) {
             return
         }
@@ -78,7 +87,7 @@ async function updateProductionInfo() {
         for (var Recipe of ContentDiv) {
             const amount = Recipe.getElementsByClassName("badge btn-badge bg-secondary")[0].textContent
             const ingredient = Recipe.getElementsByClassName("btn-caption")[0].textContent
-            const price = GetMat(ingredient, ExchangePrices).avgPrice
+            const price = GetMat(ingredient, exchangePrices).avgPrice
             TotalCost += amount * price
 
             ingredients.push([ingredient, amount, price])
@@ -86,7 +95,7 @@ async function updateProductionInfo() {
 
         const TimeCell = RecipeRows[i].cells[2]
         const Time = ConvertTimeToHours(TimeCell.textContent)
-
+        TotalCost += costPerHour * Time
         const ResultCell = RecipeRows[i].cells[3]
         const ResultContentDiv = ResultCell.getElementsByClassName("btn btn-material")
 
@@ -94,7 +103,9 @@ async function updateProductionInfo() {
         const ingredient = ResultContentDiv[0].getElementsByClassName("btn-caption")[0].textContent
 
         const price =
-            GetMat(ingredient, ExchangePrices).avgPrice
+            GetMat(ingredient, exchangePrices).avgPrice
+
+        // Calculate cost for workforce
 
         let td = document.createElement('td');
         td.textContent = Math.round((price * amount - TotalCost) / Time / 100).toLocaleString() + "$"
@@ -141,7 +152,7 @@ async function updateEncyclpediaInfo() {
             for (var Recipe of ContentDiv) {
                 const amount = Recipe.getElementsByClassName("badge btn-badge bg-secondary")[0].textContent
                 const ingredient = Recipe.getElementsByClassName("btn-caption")[0].textContent
-                const price = GetMat(ingredient, ExchangePrices).avgPrice
+                const price = GetMat(ingredient).avgPrice
                 TotalCost += amount * price
 
                 ingredients.push([ingredient, amount, price])
@@ -157,7 +168,7 @@ async function updateEncyclpediaInfo() {
             const ingredient = ResultContentDiv[0].getElementsByClassName("btn-caption")[0].textContent
 
             const price =
-                GetMat(ingredient, ExchangePrices).avgPrice
+                GetMat(ingredient).avgPrice
 
             let td = document.createElement('td');
             td.textContent = Math.round((price * amount - TotalCost) / Time / 100).toLocaleString() + "$"
@@ -178,10 +189,109 @@ function ConvertTimeToHours(_time) {
     return Minutes / 60;
 }
 
-function GetMat(MatName, ExchangePrices) {
-    const ExactEntry = ExchangePrices.find((element) => element.matName == MatName)
+function GetMat(MatName) {
+    const ExactEntry = exchangePrices.find((element) => element.matName == MatName)
 
     if (ExactEntry)
         return ExactEntry
-    return ExchangePrices.find((element) => element.matName.includes(MatName))
+    return exchangePrices.find((element) => element.matName.includes(MatName))
+}
+//------------------------------------------------------------------------------------------------------
+// Utils
+//------------------------------------------------------------------------------------------------------
+let gameData
+setTimeout(async () => {
+    const gameDataResponse = await fetch('https://api.g2.galactictycoons.com/gamedata.json', {
+        method: 'GET'
+    });
+
+    gameData = await gameDataResponse.json()
+}, 10)
+
+function findBuildingFromName(name) {
+    const exactEntry = gameData.buildings.find((element) => element.name == name)
+
+    if (exactEntry)
+        return exactEntry
+    return gameData.materials.find((element) => element.name.includes(name))
+}
+
+function getMatIdForName(matName) {
+    const exactEntry = gameData.materials.find((element) => element.name == MatName || element.sName == matName)
+
+    if (exactEntry)
+        return exactEntry
+    return gameData.materials.find((element) => element.name.includes(matName) || element.sName.includes(matName))
+}
+
+//------------------------------------------------------------------------------------------------------
+// Exchange Cache
+//------------------------------------------------------------------------------------------------------
+//--- Settings --
+const cookieNameExchangeData = "exchange-data"
+const maxLifetimeSeconds = 60
+// all values in ms
+const checkIntervalOffsetMin = 1 * 1000
+const checkIntervalOffsetMax = 10 * 1000
+//--- Settings end ---
+
+let exchangePrices = []
+
+var show = document.createElement("input");
+show.type = "button";
+show.value = "Print Exchange Data";
+show.className = "btn btn-sm btn-secondary"
+show.onclick = showData;
+
+document.body.insertBefore(show, document.body.firstChild);
+
+var update = document.createElement("input");
+update.type = "button";
+update.value = "Update Exchange Data";
+update.className = "btn btn-sm btn-secondary"
+update.onclick = updateExchangeData;
+
+document.body.insertBefore(update, document.body.firstChild);
+
+setTimeout(async function () { await updateExchangeData() }, Math.max(Math.floor(Math.random() * checkIntervalOffsetMax)), checkIntervalOffsetMin)
+
+setInterval(async function () {
+    await updateExchangeData()
+}, maxLifetimeSeconds + Math.max(Math.floor(Math.random() * checkIntervalOffsetMax)), checkIntervalOffsetMin)
+
+async function showData() {
+    var exhangeData = await getData()
+    notes = console.log(exhangeData);
+}
+
+async function updateExchangeData() {
+    const lastUpdate = getLastUpdateTime()
+    if (lastUpdate && new Date(lastUpdate.getTime() + maxLifetimeSeconds * 1000) > Date.now()) {
+        exchangePrices = await getData()
+        return
+    }
+
+    const exchangeResponse = await fetch('https://api.g2.galactictycoons.com/public/exchange/mat-prices', {
+        method: 'GET'
+    });
+
+    let exchange = await exchangeResponse.json()
+
+    setData(exchange)
+}
+
+function setData(data) {
+    exchangePrices = data.prices;
+    data.timeStamp = Date.now()
+    sessionStorage.setItem(cookieNameExchangeData, JSON.stringify(data));
+}
+
+function getData() {
+    const sessionData = JSON.parse(sessionStorage.getItem(cookieNameExchangeData))
+    return sessionData.prices;
+}
+
+function getLastUpdateTime() {
+    const sessionData = JSON.parse(sessionStorage.getItem(cookieNameExchangeData))
+    return new Date(sessionData?.timeStamp);
 }
