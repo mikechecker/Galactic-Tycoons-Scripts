@@ -53,7 +53,7 @@ async function updateProductionInfo() {
     // convert consumables to cost per hour
     let costPerHour = 0
     for (let [key, value] of consumables) {
-        costPerHour = + exchangePrices.find((element) => element.matId == key).avgPrice * value / 24 / 100
+        costPerHour += exchangePrices.find((element) => element.matId == key)?.avgPrice * value / 24 / 100
     }
 
     let RecipeSelectionHeader = RecipeTbody.parentElement.querySelector('thead tr')
@@ -144,6 +144,37 @@ async function updateEncyclpediaInfo() {
                 Row.removeChild(Row.children[5])
             }
 
+            const titleDiv = Row.cells[0].querySelector('div.btn-caption')
+            if (!titleDiv) {
+                return
+            }
+
+            // Building cost per hour
+            const buildingName = titleDiv.textContent
+            const buildingData = findBuildingFromName(buildingName)
+            if (!buildingData) {
+                return
+            }
+            const consumables = buildingData.workersNeeded.reduce((acc, workersAmount, index) => {
+                if (workersAmount == 0)
+                    return acc
+
+                gameData.workers[index].consumables.forEach(consumable => {
+                    const existing = acc.get(consumable.matId)
+                    if (existing) {
+                        existing += consumable.amount * workersAmount / 1000
+                    } else {
+                        acc.set(consumable.matId, consumable.amount * workersAmount / 1000)
+                    }
+                })
+                return acc
+            }, new Map())
+
+            // convert consumables to cost per hour
+            let costPerHour = 0
+            for (let [key, value] of consumables) {
+                costPerHour += exchangePrices.find((element) => element.matId == key)?.avgPrice * value / 24 / 100
+            }
             const IngredientDiv = Row.cells[1]
             const ContentDiv = IngredientDiv.getElementsByClassName("btn btn-material")
 
@@ -160,7 +191,7 @@ async function updateEncyclpediaInfo() {
 
             const TimeCell = Row.cells[3]
             const Time = ConvertTimeToHours(TimeCell.textContent)
-
+            TotalCost += costPerHour * Time
             const ResultCell = Row.cells[4]
             const ResultContentDiv = ResultCell.getElementsByClassName("btn btn-material")
 
@@ -274,6 +305,12 @@ async function updateExchangeData() {
     const exchangeResponse = await fetch('https://api.g2.galactictycoons.com/public/exchange/mat-prices', {
         method: 'GET'
     });
+
+    // Fallback if API is down or bugdet is exceeded
+    if (exchangeResponse.status != 200) {
+        exchangePrices = await getData()
+        return
+    }
 
     let exchange = await exchangeResponse.json()
 
