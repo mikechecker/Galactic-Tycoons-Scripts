@@ -25,11 +25,11 @@ setTimeout(async ()=> {
 
 function findBuildingFromName(name)
 {
-   const exactEntry = gameData.buildings.find((element) => element.name == MatName )
+   const exactEntry = gameData.buildings.find((element) => element.name == name )
 
     if (exactEntry)
         return exactEntry
-    return gameData.materials.find((element) => element.name.includes(matName))
+    return gameData.materials.find((element) => element.name.includes(name))
 }
 
 function getMatIdForName(matName) {

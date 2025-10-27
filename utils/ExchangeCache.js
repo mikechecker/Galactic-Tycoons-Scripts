@@ -45,9 +45,10 @@ async function showData() {
 async function updateExchangeData() {
     const lastUpdate = getLastUpdateTime()
     if (lastUpdate && new Date(lastUpdate.getTime() + maxLifetimeSeconds * 1000) > Date.now()) {
+        exchangePrices = await getData()
         return
     }
-    
+
     const exchangeResponse = await fetch('https://api.g2.galactictycoons.com/public/exchange/mat-prices', {
         method: 'GET'
     });
@@ -70,5 +71,5 @@ function getData() {
 
 function getLastUpdateTime() {
     const sessionData = JSON.parse(sessionStorage.getItem(cookieNameExchangeData))
-    return new Date(sessionData.timeStamp);
+    return new Date(sessionData?.timeStamp);
 }
