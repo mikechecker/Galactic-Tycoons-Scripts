@@ -10,6 +10,8 @@ let ShoppingList = new Map()
 let ShoppingListInterval
 let AddingButtonsListInterval
 
+let filterExchangeList = false
+
 setTimeout(() => {
     ShoppingListInterval = setInterval(UpdateShoppingList, 100)
     AddingButtonsListInterval = setInterval(UpdateButtons, 100)
@@ -267,13 +269,13 @@ function UpdateShoppingListDiv() {
             MainDiv.appendChild(Div1)
         }
 
-        return updateExchangeMaterialsList()
+        return modifyExchangeMaterialsList()
     }
 
     return true
 }
 
-function updateExchangeMaterialsList() {
+function modifyExchangeMaterialsList() {
     const shoppingListHeader = "Shopping List"
     let materialsList = document.querySelector("div[class='row g-4'] div.card-body")
     if (!materialsList) {
@@ -290,21 +292,70 @@ function updateExchangeMaterialsList() {
     }
 
     let filterButton = inputGroup.lastChild.cloneNode(true)
-    filterButton.querySelector("input").addEventListener("change", () => { console.log("filter changed") })
 
-    filterButton.addEventListener("mouseover", function () {
-        const rect = filterButton.getBoundingClientRect();
-        CreateTooltip("Filter materials that are in the shopping list", rect.left + window.scrollX, rect.bottom + window.scrollY);
+    filterButton.querySelector("input").addEventListener("change", () => {
+        filterExchangeList = !filterExchangeList
+        updateMaterialsList()
+    })
 
-    });
+    addToolTipToElement(filterButton)
 
-    filterButton.addEventListener("mouseout", function () {
-        tooltipDiv.style.display = "none";
-    });
-
+    let shopingCartDiv = createElementFromHTML('<span class="input-group-text rounded-0 border-0 px-2"><svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" class="iu">' +
+        '<path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5M3.102 4l1.313 7h8.17l1.313-7zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4m7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4m-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2m7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2"></path>' +
+        '</svg></span>')
+    inputGroup.appendChild(shopingCartDiv)
     inputGroup.appendChild(filterButton)
 
-    header.insertCell(1).outerHTML = `<th class="col text-end">${shoppingListHeader}</th>`
+    if (header.cells.length == 3) {
+        header.insertCell(1).outerHTML = `<th class="col text-end">${shoppingListHeader}</th>`
+    }
+
+    updateMaterialsList(materialsList)
+    return true
+}
+
+function updateMaterialsList() {
+    let materialsList = document.querySelector("div[class='row g-4'] div.card-body")
+    if (!materialsList) {
+        return false
+    }
+
+    const config = { attributes: false, childList: true, subtree: false };
+    const callback = (mutationList, observer) => {
+        for (const mutation of mutationList) {
+            if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
+                const mat = getMatForName(mutation.addedNodes[0].cells[0].textContent) ?? undefined
+
+
+                const TotalShoppingList = ShoppingList.entries().reduce(function (Acc, Entry) {
+                    for (let [Key, Value] of Entry[1]) {
+                        let CurrentAmount = Acc.get(Key) ?? 0
+                        Acc.set(getMatForName(convertSVGMatToMatName(Key)).id, parseInt(Value) + parseInt(CurrentAmount));
+                    }
+
+                    return Acc;
+                }, new Map());
+
+                if (filterExchangeList && TotalShoppingList.get(mat.id) == undefined) {
+                    mutation.addedNodes[0].style.display = "none"
+                    continue
+                }
+                else {
+                    mutation.addedNodes[0].style.display = ""
+                }
+
+                if (mutation.addedNodes[0].cells.length > 3) {
+                    mutation.addedNodes[0].cells[1].remove()
+                }
+
+
+                mutation.addedNodes[0].insertCell(1).textContent = mat ? TotalShoppingList.get(mat.id) ?? " " : " "
+            }
+        }
+
+        updateMaterialsList()
+    };
+
     const TotalShoppingList = ShoppingList.entries().reduce(function (Acc, Entry) {
         for (let [Key, Value] of Entry[1]) {
             let CurrentAmount = Acc.get(Key) ?? 0
@@ -314,52 +365,26 @@ function updateExchangeMaterialsList() {
         return Acc;
     }, new Map());
 
-    const config = { attributes: false, childList: true, subtree: false };
-    const callback = (mutationList, observer) => {
-        for (const mutation of mutationList) {
-            if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
-                const mat = getMatForName(mutation.addedNodes[0].cells[0].textContent) ?? undefined
-
-                mutation.addedNodes[0].insertCell(1).textContent = TotalShoppingList.get(mat.id) ?? " "
-            }
-        }
-    };
-
     const observer = new MutationObserver(callback);
     let table = materialsList.querySelector("tbody")
     observer.observe(table, config);
 
     let rows = materialsList.querySelectorAll("tbody tr")
 
-    console.log(TotalShoppingList)
     for (let row of rows) {
         const mat = getMatForName(row.cells[0].textContent) ?? undefined
-        row.insertCell(1).textContent = TotalShoppingList.get(mat.id) ?? " "
+        if (filterExchangeList && TotalShoppingList.get(mat.id) == undefined) {
+            row.style.display = "none"
+        } else {
+            row.style.display = ""
+        }
+
+        if (row.cells.length > 3) {
+            row.cells[1].remove()
+        }
+
+        row.insertCell(1).textContent = mat ? TotalShoppingList.get(mat.id) ?? " " : " "
     }
-
-    return true
-}
-
-let tooltipDiv
-document.addEventListener('DOMContentLoaded', (event) => {
-    var div = document.createElement('div');
-    div.innerHTML = `<div class="tooltip bs-tooltip-auto fade show" role="tooltip" style="position: absolute; inset: auto auto 0px 0px; margin: 0px;" data-popper-placement="top">` +
-        '<div class="tooltip-arrow" style="position: absolute; left: 0px; transform: translate(25px);">' +
-        `</div><div class="tooltip-inner">tooltip</div></div>`.trim();
-
-    tooltipDiv = div.firstChild;
-    tooltipDiv.style.display = "none";
-    document.body.appendChild(tooltipDiv);
-})
-
-function CreateTooltip(text, posX, posY) {
-    tooltipDiv.querySelector('.tooltip-inner').textContent = text
-    tooltipDiv.style.display = "block";
-    tooltipDiv.style.transform = `translate(${posX}px, ${posY - document.body.getBoundingClientRect().height - tooltipDiv.getBoundingClientRect().height *0.6 }px)`
-}
-
-function HideTooltip() {
-    tooltipDiv.style.display = "none";
 }
 
 function GetShoppingListTable() {
@@ -370,7 +395,6 @@ function GetShoppingListTable() {
     Card.className = "card border-0 mb-4";
     Div1.appendChild(Card)
 
-    // Total Section
     let CardBase = document.createElement('div');
     CardBase.className = "card-header text-body-secondary";
     CardBase.textContent = "Total"
@@ -383,6 +407,7 @@ function GetShoppingListTable() {
     let TotalTable = document.createElement('table');
     CardTotalEntry.appendChild(TotalTable)
 
+    // Total Section
     const TotalShoppingList = ShoppingList.entries().reduce(function (Acc, Entry) {
         for (let [Key, Value] of Entry[1]) {
             let CurrentAmount = Acc.get(Key) ?? 0
@@ -392,8 +417,6 @@ function GetShoppingListTable() {
         return Acc;
     }, new Map());
 
-
-    // for each base
     TotalShoppingList.forEach((Amount, Ingredient) => {
         var tr = TotalTable.insertRow();
         let tdIngredient = tr.insertCell();
@@ -412,6 +435,11 @@ function GetShoppingListTable() {
         let tdRemove = tr.insertCell();
         tdRemove.appendChild(button);
     })
+
+    if(getSelectedPage() == pageEnum.Exchange)
+    {
+        return Div1
+    }
 
     // for each base
     ShoppingList.forEach((BaseValue, Base) => {
@@ -472,6 +500,44 @@ function convertSVGMatToMatName(svgName) {
 }
 
 //------------------------------------------------------------------------------------------------------
+// Tooltip
+//------------------------------------------------------------------------------------------------------
+
+let tooltipDiv
+document.addEventListener('DOMContentLoaded', (event) => {
+    var div = document.createElement('div');
+    div.innerHTML = `<div class="tooltip bs-tooltip-auto fade show" role="tooltip" style="position: absolute; inset: auto auto 0px 0px; margin: 0px;" data-popper-placement="top">` +
+        '<div class="tooltip-arrow" style="position: absolute; left: 0px; transform: translate(25px);">' +
+        `</div><div class="tooltip-inner">tooltip</div></div>`.trim();
+
+    tooltipDiv = div.firstChild;
+    tooltipDiv.style.display = "none";
+    document.body.appendChild(tooltipDiv);
+})
+
+function addToolTipToElement(elem) {
+    elem.addEventListener("mouseover", function () {
+        const rect = elem.getBoundingClientRect();
+        CreateTooltip("Filter materials that are in the shopping list", rect.left + window.scrollX, rect.top + window.scrollY);
+
+    });
+
+    elem.addEventListener("mouseout", function () {
+        tooltipDiv.style.display = "none";
+    });
+}
+
+function CreateTooltip(text, posX, posY) {
+    tooltipDiv.querySelector('.tooltip-inner').textContent = text
+    tooltipDiv.style.transform = `translate(${posX}px, ${posY - document.body.getBoundingClientRect().height - tooltipDiv.getBoundingClientRect().height * 0.8}px)`
+    tooltipDiv.style.display = "block";
+}
+
+function HideTooltip() {
+    tooltipDiv.style.display = "none";
+}
+
+//------------------------------------------------------------------------------------------------------
 // Utils
 //------------------------------------------------------------------------------------------------------
 let gameData
@@ -498,4 +564,21 @@ function getMatForName(matName) {
     if (exactEntry)
         return exactEntry
     return gameData.materials.find((element) => element.name.includes(name) || element.sName.includes(name))
+}
+
+function createElementFromHTML(htmlString) {
+    var div = document.createElement('div');
+    div.innerHTML = htmlString.trim();
+    return div.firstChild;
+}
+
+const pageEnum =
+{
+    Exchange: "Exchange",
+    Base: "Base",
+}
+
+function getSelectedPage() {
+    const selectedPage = document.querySelector("a.nav-link.cursor-pointer.py-3.active span.ms-1").textContent
+    return selectedPage
 }
