@@ -359,7 +359,16 @@ function updateMaterialsList() {
     const TotalShoppingList = ShoppingList.entries().reduce(function (Acc, Entry) {
         for (let [Key, Value] of Entry[1]) {
             let CurrentAmount = Acc.get(Key) ?? 0
-            Acc.set(getMatForName(convertSVGMatToMatName(Key)).id, parseInt(Value) + parseInt(CurrentAmount));
+            const mat = getMatForName(convertSVGMatToMatName(Key))
+            if(mat)
+            {
+                Acc.set(mat.id, parseInt(Value) + parseInt(CurrentAmount));
+
+            }
+            else
+            {
+                console.log(`${convertSVGMatToMatName(Key)} : ${Key}`)
+            }
         }
 
         return Acc;
@@ -495,6 +504,7 @@ function GetIngredientImage(Ingredient) {
 
 function convertSVGMatToMatName(svgName) {
     let result = svgName.replace("Basic", '')
+    result = result.match(/[A-Z][a-z]+/g).join(" ")
     result = result.trim()
     return result
 }
@@ -519,7 +529,6 @@ function addToolTipToElement(elem) {
     elem.addEventListener("mouseover", function () {
         const rect = elem.getBoundingClientRect();
         CreateTooltip("Filter materials that are in the shopping list", rect.left + window.scrollX, rect.top + window.scrollY);
-
     });
 
     elem.addEventListener("mouseout", function () {
