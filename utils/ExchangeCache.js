@@ -5,31 +5,18 @@
 // @run-at document-end
 // ==/UserScript==
 
+//------------------------------------------------------------------------------------------------------
+// Exchange Cache
+//------------------------------------------------------------------------------------------------------
 //--- Settings --
 const cookieNameExchangeData = "exchange-data"
 const maxLifetimeSeconds = 60
 // all values in ms
-const checkIntervalOffsetMin = 1 * 1000
-const checkIntervalOffsetMax = 10 * 1000
+const checkIntervalOffsetMin = 0
+const checkIntervalOffsetMax = 500
 //--- Settings end ---
 
 let exchangePrices = []
-
-var show = document.createElement("input");
-show.type = "button";
-show.value = "Print Exchange Data";
-show.className = "btn btn-sm btn-secondary"
-show.onclick = showData;
-
-document.body.insertBefore(show, document.body.firstChild);
-
-var update = document.createElement("input");
-update.type = "button";
-update.value = "Update Exchange Data";
-update.className = "btn btn-sm btn-secondary"
-update.onclick = updateExchangeData;
-
-document.body.insertBefore(update, document.body.firstChild);
 
 setTimeout(async function () { await updateExchangeData() }, Math.max(Math.floor(Math.random() * checkIntervalOffsetMax)), checkIntervalOffsetMin)
 
@@ -52,7 +39,7 @@ async function updateExchangeData() {
     const exchangeResponse = await fetch('https://api.g2.galactictycoons.com/public/exchange/mat-prices', {
         method: 'GET'
     });
-    
+
     // Fallback if API is down or bugdet is exceeded
     if (exchangeResponse.status != 200) {
         exchangePrices = await getData()

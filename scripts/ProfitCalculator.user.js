@@ -265,8 +265,8 @@ function getMatForName(matName) {
 const cookieNameExchangeData = "exchange-data"
 const maxLifetimeSeconds = 60
 // all values in ms
-const checkIntervalOffsetMin = 1 * 1000
-const checkIntervalOffsetMax = 10 * 1000
+const checkIntervalOffsetMin = 0
+const checkIntervalOffsetMax = 500
 //--- Settings end ---
 
 let exchangePrices = []
