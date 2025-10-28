@@ -227,6 +227,7 @@ function GetMat(MatName) {
         return ExactEntry
     return exchangePrices.find((element) => element.matName.includes(MatName))
 }
+
 //------------------------------------------------------------------------------------------------------
 // Utils
 //------------------------------------------------------------------------------------------------------
@@ -247,13 +248,15 @@ function findBuildingFromName(name) {
     return gameData.materials.find((element) => element.name.includes(name))
 }
 
-function getMatIdForName(matName) {
-    const exactEntry = gameData.materials.find((element) => element.name == MatName || element.sName == matName)
+function getMatForName(matName) {
+    const name = matName.trim()
+    const exactEntry = gameData.materials.find((element) => element.name == name || element.sName == name)
 
     if (exactEntry)
         return exactEntry
-    return gameData.materials.find((element) => element.name.includes(matName) || element.sName.includes(matName))
+    return gameData.materials.find((element) => element.name.includes(name) || element.sName.includes(name))
 }
+
 
 //------------------------------------------------------------------------------------------------------
 // Exchange Cache
@@ -267,22 +270,6 @@ const checkIntervalOffsetMax = 10 * 1000
 //--- Settings end ---
 
 let exchangePrices = []
-
-var show = document.createElement("input");
-show.type = "button";
-show.value = "Print Exchange Data";
-show.className = "btn btn-sm btn-secondary"
-show.onclick = showData;
-
-document.body.insertBefore(show, document.body.firstChild);
-
-var update = document.createElement("input");
-update.type = "button";
-update.value = "Update Exchange Data";
-update.className = "btn btn-sm btn-secondary"
-update.onclick = updateExchangeData;
-
-document.body.insertBefore(update, document.body.firstChild);
 
 setTimeout(async function () { await updateExchangeData() }, Math.max(Math.floor(Math.random() * checkIntervalOffsetMax)), checkIntervalOffsetMin)
 

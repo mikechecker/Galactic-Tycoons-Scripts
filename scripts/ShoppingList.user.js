@@ -11,8 +11,8 @@ let ShoppingListInterval
 let AddingButtonsListInterval
 
 setTimeout(() => {
-    ShoppingListInterval = setInterval(Update, 100)
-    AddingButtonsListInterval = setInterval(Update, 100)
+    ShoppingListInterval = setInterval(UpdateShoppingList, 100)
+    AddingButtonsListInterval = setInterval(UpdateButtons, 100)
 }, 1000);
 
 document.addEventListener('click', () => {
@@ -26,8 +26,6 @@ document.addEventListener('click', () => {
 })
 
 async function UpdateShoppingList() {
-    console.log("UpdateShoppingList")
-
     if (UpdateShoppingListDiv()) {
         clearInterval(ShoppingListInterval);
         ShoppingListInterval = undefined
@@ -35,19 +33,18 @@ async function UpdateShoppingList() {
 }
 
 async function UpdateButtons() {
-    console.log("UpdateButtons")
     let Result = false
 
     const SummaryDiv = document.getElementsByClassName("user-select-none p-2 px-3")
     if (SummaryDiv && SummaryDiv.length > 0) {
         if (SummaryDiv[0].textContent.includes("Daily Production")) {
-             Result = Result || UpdateProductionButtons()
+            Result = Result || UpdateProductionButtons()
         }
     }
 
     const InputCol = document.getElementsByClassName("table table-hover align-middle text-end mb-1")
-    if (InputCol  && InputCol.length > 0) {
-           Result = Result || UpdateConsumptionButtons()
+    if (InputCol && InputCol.length > 0) {
+        Result = Result || UpdateConsumptionButtons()
     }
 
     if (Result) {
@@ -269,9 +266,100 @@ function UpdateShoppingListDiv() {
         else {
             MainDiv.appendChild(Div1)
         }
+
+        return updateExchangeMaterialsList()
     }
 
     return true
+}
+
+function updateExchangeMaterialsList() {
+    const shoppingListHeader = "Shopping List"
+    let materialsList = document.querySelector("div[class='row g-4'] div.card-body")
+    if (!materialsList) {
+        return false
+    }
+
+    let header = materialsList.querySelector("thead tr")
+    if (Array.from(header.cells).find(cell => cell.textContent == shoppingListHeader))
+        return false;
+
+    let inputGroup = materialsList.querySelector("div.input-group")
+    if (!inputGroup) {
+        return false
+    }
+
+    let filterButton = inputGroup.lastChild.cloneNode(true)
+    filterButton.querySelector("input").addEventListener("change", () => { console.log("filter changed") })
+
+    filterButton.addEventListener("mouseover", function () {
+        const rect = filterButton.getBoundingClientRect();
+        CreateTooltip("Filter materials that are in the shopping list", rect.left + window.scrollX, rect.bottom + window.scrollY);
+
+    });
+
+    filterButton.addEventListener("mouseout", function () {
+        tooltipDiv.style.display = "none";
+    });
+
+    inputGroup.appendChild(filterButton)
+
+    header.insertCell(1).outerHTML = `<th class="col text-end">${shoppingListHeader}</th>`
+    const TotalShoppingList = ShoppingList.entries().reduce(function (Acc, Entry) {
+        for (let [Key, Value] of Entry[1]) {
+            let CurrentAmount = Acc.get(Key) ?? 0
+            Acc.set(getMatForName(convertSVGMatToMatName(Key)).id, parseInt(Value) + parseInt(CurrentAmount));
+        }
+
+        return Acc;
+    }, new Map());
+
+    const config = { attributes: false, childList: true, subtree: false };
+    const callback = (mutationList, observer) => {
+        for (const mutation of mutationList) {
+            if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
+                const mat = getMatForName(mutation.addedNodes[0].cells[0].textContent) ?? undefined
+
+                mutation.addedNodes[0].insertCell(1).textContent = TotalShoppingList.get(mat.id) ?? " "
+            }
+        }
+    };
+
+    const observer = new MutationObserver(callback);
+    let table = materialsList.querySelector("tbody")
+    observer.observe(table, config);
+
+    let rows = materialsList.querySelectorAll("tbody tr")
+
+    console.log(TotalShoppingList)
+    for (let row of rows) {
+        const mat = getMatForName(row.cells[0].textContent) ?? undefined
+        row.insertCell(1).textContent = TotalShoppingList.get(mat.id) ?? " "
+    }
+
+    return true
+}
+
+let tooltipDiv
+document.addEventListener('DOMContentLoaded', (event) => {
+    var div = document.createElement('div');
+    div.innerHTML = `<div class="tooltip bs-tooltip-auto fade show" role="tooltip" style="position: absolute; inset: auto auto 0px 0px; margin: 0px;" data-popper-placement="top">` +
+        '<div class="tooltip-arrow" style="position: absolute; left: 0px; transform: translate(25px);">' +
+        `</div><div class="tooltip-inner">tooltip</div></div>`.trim();
+
+    tooltipDiv = div.firstChild;
+    tooltipDiv.style.display = "none";
+    document.body.appendChild(tooltipDiv);
+})
+
+function CreateTooltip(text, posX, posY) {
+    tooltipDiv.querySelector('.tooltip-inner').textContent = text
+    tooltipDiv.style.display = "block";
+    tooltipDiv.style.transform = `translate(${posX}px, ${posY - document.body.getBoundingClientRect().height - tooltipDiv.getBoundingClientRect().height *0.6 }px)`
+}
+
+function HideTooltip() {
+    tooltipDiv.style.display = "none";
 }
 
 function GetShoppingListTable() {
@@ -375,4 +463,39 @@ function GetIngredientImage(Ingredient) {
     svg.className = "io ai-st flex-shrink-0 me-2";
 
     return svg
+}
+
+function convertSVGMatToMatName(svgName) {
+    let result = svgName.replace("Basic", '')
+    result = result.trim()
+    return result
+}
+
+//------------------------------------------------------------------------------------------------------
+// Utils
+//------------------------------------------------------------------------------------------------------
+let gameData
+setTimeout(async () => {
+    const gameDataResponse = await fetch('https://api.g2.galactictycoons.com/gamedata.json', {
+        method: 'GET'
+    });
+
+    gameData = await gameDataResponse.json()
+}, 10)
+
+function findBuildingFromName(name) {
+    const exactEntry = gameData.buildings.find((element) => element.name == name)
+
+    if (exactEntry)
+        return exactEntry
+    return gameData.materials.find((element) => element.name.includes(name))
+}
+
+function getMatForName(matName) {
+    const name = matName.trim()
+    const exactEntry = gameData.materials.find((element) => element.name == name || element.sName == matName)
+
+    if (exactEntry)
+        return exactEntry
+    return gameData.materials.find((element) => element.name.includes(name) || element.sName.includes(name))
 }

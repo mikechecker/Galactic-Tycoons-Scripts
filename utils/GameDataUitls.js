@@ -32,10 +32,11 @@ function findBuildingFromName(name)
     return gameData.materials.find((element) => element.name.includes(name))
 }
 
-function getMatIdForName(matName) {
-    const exactEntry = gameData.materials.find((element) => element.name == MatName || element.sName == matName )
+function getMatForName(matName) {
+    const name = matName.trim()
+    const exactEntry = gameData.materials.find((element) => element.name == name || element.sName == name)
 
     if (exactEntry)
         return exactEntry
-    return gameData.materials.find((element) => element.name.includes(matName) || element.sName.includes(matName))
+    return gameData.materials.find((element) => element.name.includes(name) || element.sName.includes(name))
 }
