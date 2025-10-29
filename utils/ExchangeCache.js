@@ -24,11 +24,6 @@ setInterval(async function () {
     await updateExchangeData()
 }, maxLifetimeSeconds + Math.max(Math.floor(Math.random() * checkIntervalOffsetMax)), checkIntervalOffsetMin)
 
-async function showData() {
-    var exhangeData = await getData()
-    notes = console.log(exhangeData);
-}
-
 async function updateExchangeData() {
     const lastUpdate = getLastUpdateTime()
     if (lastUpdate && new Date(lastUpdate.getTime() + maxLifetimeSeconds * 1000) > Date.now()) {

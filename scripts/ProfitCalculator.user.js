@@ -5,18 +5,25 @@
 // @run-at document-end
 // ==/UserScript==
 
-setInterval(function () {
-    if (exchangePrices.length == 0) {
-        return
-    }
+const config = { attributes: false, childList: true, subtree: true };
+const callback = (mutationList, observer) => {
+    setTimeout(() => {
+        if (exchangePrices.length == 0) {
+            return
+        }
 
-    if (!gameData) {
-        return
-    }
+        if (!gameData) {
+            return
+        }
 
-    updateEncyclpediaInfo()
-    updateProductionInfo()
-}, 100)
+        updateEncyclpediaInfo()
+        updateProductionInfo()
+    }, 100)
+
+};
+
+const observer = new MutationObserver(callback);
+observer.observe(document.body, config);
 
 async function updateProductionInfo() {
     let RecipeTbody = document.querySelector('div.modal-body table tbody')
@@ -114,35 +121,33 @@ async function updateProductionInfo() {
 }
 
 async function updateEncyclpediaInfo() {
-    let SourceDiv = document.querySelector('div[class="fw-bold"]')
-    if (!SourceDiv || SourceDiv.textContent != "Source") {
-        return
-    }
-
-    SourceDiv.parentElement.querySelectorAll('thead tr').forEach(tr => {
-        if (tr.children.length < 4) {
+    document.querySelectorAll('div[class="fw-bold"]').forEach((SourceDiv) => {
+        if (!SourceDiv) {
             return
         }
 
-        if (tr.children.length == 5) {
-            let Cell = tr.insertCell(-1)
-            let newTh = document.createElement('th');
-            newTh.textContent = "Profit"
-            Cell.appendChild(newTh)
+        if (SourceDiv.textContent != "Source"
+            && SourceDiv.textContent != "Producing"
+            && SourceDiv.textContent != "Used in production"
+        ) {
+            return
         }
 
-        let RecipeRows = tr.parentElement.parentElement.querySelectorAll('tbody tr')
+        let header = SourceDiv.nextSibling.querySelector('thead tr')
+        if (header.lastChild.textContent == "Profit") {
+            return
+        }
+
+        let Cell = header.insertCell(-1)
+        let newTh = document.createElement('th');
+        newTh.textContent = "Profit"
+        Cell.appendChild(newTh)
+
+        let RecipeRows = header.parentElement.parentElement.querySelectorAll('tbody tr')
 
         // get all Ingredients
         for (let i = 0; i < RecipeRows.length; i++) {
             let Row = RecipeRows[i]
-            if (Row.children.length < 5) {
-                return
-            }
-
-            if (Row.children.length == 6) {
-                Row.removeChild(Row.children[5])
-            }
 
             const titleDiv = Row.cells[0].querySelector('div.btn-caption')
             if (!titleDiv) {
@@ -276,11 +281,6 @@ setTimeout(async function () { await updateExchangeData() }, Math.max(Math.floor
 setInterval(async function () {
     await updateExchangeData()
 }, maxLifetimeSeconds + Math.max(Math.floor(Math.random() * checkIntervalOffsetMax)), checkIntervalOffsetMin)
-
-async function showData() {
-    var exhangeData = await getData()
-    notes = console.log(exhangeData);
-}
 
 async function updateExchangeData() {
     const lastUpdate = getLastUpdateTime()
