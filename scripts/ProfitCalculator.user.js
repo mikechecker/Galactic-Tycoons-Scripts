@@ -2,6 +2,7 @@
 // @name     Galactic Tyocoons Profit Calculator
 // @version  0.1
 // @include  https://*.galactictycoons.com/*
+// @updateURL https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ProfitCalculator.user.js
 // @run-at document-end
 // ==/UserScript==
 
@@ -74,8 +75,9 @@ async function updateProductionInfo() {
         return
     }
 
-    let Cell = RecipeSelectionHeader.insertCell(-1)
-    Cell.textContent = profitHeader
+    let cell = RecipeSelectionHeader.insertCell(-1)
+    cell.className = "col"
+    cell.textContent = profitHeader
 
     let RecipeRows = RecipeTbody.querySelectorAll('tr.cursor-pointer')
 
@@ -143,6 +145,7 @@ async function updateEncyclpediaInfo() {
 
         let Cell = header.insertCell(-1)
         let newTh = document.createElement('th');
+        newTh.className = "col"
         newTh.textContent = profitHeader
         Cell.appendChild(newTh)
 
