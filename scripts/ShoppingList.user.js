@@ -2,59 +2,170 @@
 // @name     Galactic Tycoon Shopping List
 // @version  0.1
 // @include  https://*.galactictycoons.com/*
+// @run-at document-end
 // ==/UserScript==
 
-// {Base{Ingrediented, Amount}}
-let ShoppingList = new Map()
+let _iconMap = new Map();
 
-let ShoppingListInterval
-let AddingButtonsListInterval
+// ShopingList class: wraps the existing ShoppingList Map, provides add/remove helpers
+// and a change-event API. Instantiated as `shopingList` and replaces the global
+// ShoppingList variable with a proxied Map so existing code continues to work.
+class ShopingListClass {
+    constructor(initialMap = new Map()) {
+        this._map = initialMap;
+        this._listeners = new Set();
+    }
+
+    _emitChange() {
+        try {
+            for (const callback of Array.from(this._listeners)) {
+                try { callback(this._map); } catch (e) {
+                    console.error("shoppingList listener error:", e);
+                    this.removeChangeListener(callback)
+                }
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    // Register a listener; returns an unsubscribe function
+    addChangeListener(callback) {
+        this._listeners.add(callback);
+        return () => this._listeners.delete(callback);
+    }
+
+    removeChangeListener(callback) {
+        this._listeners.delete(callback);
+    }
+
+    add(Base, Ingredient, Amount, icon) {
+        let baseEntry = this._map.get(Base);
+        if (baseEntry === undefined) {
+            this._map.set(Base, new Map());
+            baseEntry = this._map.get(Base);
+        }
+
+        const mat = getMatForName(Ingredient)
+
+        let currentAmount = baseEntry.get(mat.id);
+        if (currentAmount === undefined) {
+            baseEntry.set(mat.id, parseInt(Amount));
+        } else {
+            baseEntry.set(mat.id, parseInt(currentAmount) + parseInt(Amount));
+        }
+
+        _iconMap.set(mat.id, icon)
+        this._emitChange();
+        return this._map;
+    }
+
+    remove(Base, ingredientId, Amount) {
+        let baseEntry = this._map.get(Base);
+        if (baseEntry === undefined) return this._map;
+
+        let ingredientEntry = baseEntry.get(ingredientId);
+        if (ingredientEntry === undefined) return this._map;
+
+        let currentAmount = parseInt(ingredientEntry) - parseInt(Amount);
+        if (currentAmount <= 0) {
+            baseEntry.delete(ingredientId);
+            if (baseEntry.size === 0) this._map.delete(Base);
+        } else {
+            baseEntry.set(ingredientId, currentAmount);
+        }
+
+        if (baseEntry.size === 0) this._map.delete(Base);
+
+        this._emitChange();
+        return this._map;
+    }
+
+    removeWholeIngredient(ingredientId) {
+        for (let [Key, Value] of Array.from(this._map.entries())) {
+            if (Value.has(ingredientId)) {
+                let baseEntry = this._map.get(Key);
+                baseEntry.delete(ingredientId);
+                if (baseEntry.size === 0) {
+                    this._map.delete(Key);
+                }
+            }
+        }
+        this._emitChange();
+        return this._map;
+    }
+
+    clear() {
+        this._map.clear();
+        this._emitChange();
+        return this._map;
+    }
+
+    toMap() {
+        return this._map;
+    }
+
+    totalIngredients() {
+        const totals = new Map();
+        for (const [, ingredients] of this._map.entries()) {
+            for (const [ingredient, amount] of ingredients.entries()) {
+                const n = parseInt(amount) || 0;
+                totals.set(ingredient, (totals.get(ingredient) || 0) + n);
+            }
+        }
+        return totals;
+    }
+
+    // Map-like helpers so existing code that uses ShoppingList as a Map still works
+    get(key) { return this._map.get(key); }
+    set(key, value) { const res = this._map.set(key, value); this._emitChange(); return res; }
+    delete(key) { const res = this._map.delete(key); this._emitChange(); return res; }
+    entries() { return Array.from(this._map.entries()); }
+    forEach(cb) { return this._map.forEach((v, k) => cb(v, k, this._map)); }
+    get size() { return this._map.size; }
+
+}
+
+//--- constants --
+const shoppingListId = "shoppingList"
+
+const shoppingList = new ShopingListClass()
 
 let filterExchangeList = false
 
-setTimeout(() => {
-    ShoppingListInterval = setInterval(UpdateShoppingList, 100)
-    AddingButtonsListInterval = setInterval(UpdateButtons, 100)
-}, 1000);
+let shouldUpdate = true
 
-document.addEventListener('click', () => {
-    if (ShoppingListInterval == undefined) {
-        ShoppingListInterval = setInterval(UpdateShoppingList, 100);
+const config = { attributes: false, childList: true, subtree: true };
+const callback = (mutationList, observer) => {
+    if (shouldUpdate) {
+        UpdateShoppingListDiv()
+        UpdateButtons()
+        shouldUpdate = false
     }
-    if (AddingButtonsListInterval == undefined) {
-        AddingButtonsListInterval = setInterval(UpdateButtons, 100);
-    }
+    setTimeout(() => {
+        shouldUpdate = true
+    }, 10)
+};
 
-})
+const observer = new MutationObserver(callback);
+observer.observe(document.body, config);
 
-async function UpdateShoppingList() {
-    if (UpdateShoppingListDiv()) {
-        clearInterval(ShoppingListInterval);
-        ShoppingListInterval = undefined
-    }
-}
-
+//----------------------------------------------------------------------------------------------------------
 async function UpdateButtons() {
-    let Result = false
-
     const SummaryDiv = document.getElementsByClassName("user-select-none p-2 px-3")
     if (SummaryDiv && SummaryDiv.length > 0) {
         if (SummaryDiv[0].textContent.includes("Daily Production")) {
-            Result = Result || UpdateProductionButtons()
+            UpdateProductionButtons()
         }
     }
 
     const InputCol = document.getElementsByClassName("table table-hover align-middle text-end mb-1")
     if (InputCol && InputCol.length > 0) {
-        Result = Result || UpdateConsumptionButtons()
-    }
-
-    if (Result) {
-        clearInterval(AddingButtonsListInterval);
-        AddingButtonsListInterval = undefined
+        UpdateConsumptionButtons()
     }
 }
 
+//----------------------------------------------------------------------------------------------------------
 function UpdateConsumptionButtons() {
     const InputCol = document.getElementsByClassName("table table-hover align-middle text-end mb-1")
     if (InputCol == undefined || InputCol.length == 0) {
@@ -85,21 +196,16 @@ function UpdateConsumptionButtons() {
 
         let td = Row.insertCell(-1)
 
-        let button = document.createElement('input');
-        button.type = "button";
-        button.value = "+"
-        button.className = "btn btn-sm btn-secondary"
-
-        const ingredient = Row.cells[0].children[0].children[0].children[0].attributes[0].nodeValue.split("#")[1]
+        const icon = Row.cells[0].children[0].children[0].children[0].attributes[0].nodeValue
         const amount = Row.cells[2].textContent
-        button.addEventListener('click', () => AddToShoppingList(Base, ingredient, amount));
 
-        td.appendChild(button);
+        td.appendChild(getAddingButtons(Base, icon, amount, true));
     }
 
     return true
 }
 
+//----------------------------------------------------------------------------------------------------------
 function UpdateProductionButtons() {
     const SummaryDiv = document.getElementsByClassName("user-select-none p-2 px-3")
     if (SummaryDiv == undefined || SummaryDiv.length == 0) {
@@ -121,6 +227,11 @@ function UpdateProductionButtons() {
         return false
     }
 
+    Rows[0].cells[0].setAttribute('colspan', "")
+    let headerCell = document.createElement('th')
+    headerCell.textContent = "List"
+    headerCell.className = "col"
+    Rows[0].appendChild(headerCell)
     const Base = document.getElementsByClassName("list-group-item list-group-item-action hstack active")[0].children[0].textContent
 
     if (Rows.length < 2) {
@@ -134,147 +245,86 @@ function UpdateProductionButtons() {
             Row.removeChild(Row.children[2])
         }
 
-        let button = document.createElement('input');
-        button.type = "button";
-        button.value = "+"
-        button.className = "btn btn-sm btn-secondary"
-
-        const ingredient = Row.cells[0].children[0].children[0].attributes[0].nodeValue.split("#")[1]
+        const icon = Row.cells[0].children[0].children[0].attributes[0].nodeValue
         const amount = Row.cells[1].textContent
 
-        button.addEventListener('click', () => AddToShoppingList(Base, ingredient, amount));
-
-        Row.appendChild(button, Row.cells[1]);
+        const buttons = getAddingButtons(Base, icon, amount, false);
+        Row.cells[1].remove()
+        Row.appendChild(buttons, Row.cells[1]);
     }
 
     return true
 }
 
-function AddToShoppingList(Base, Ingredient, Amount) {
-    let BaseEntry = ShoppingList.get(Base)
+//----------------------------------------------------------------------------------------------------------
+function getAddingButtons(base, icon, amount, useAllButtons = false) {
+    const ingredient = convertSVGMatToMatName(icon)
 
-    if (BaseEntry == undefined) {
-        ShoppingList.set(Base, new Map())
-        BaseEntry = ShoppingList.get(Base)
+    let row = document.createElement('td');
+
+    let div = document.createElement('div');
+    // div.style.textAlign = "center"
+    // div.style.flexWrap = "nowrap"
+    // div.style.display = "inline-block"
+
+    let amountText = document.createElement('a');
+    amountText.className = "text-end"
+    div.appendChild(amountText)
+
+    if (useAllButtons) {
+        let dailyButton = document.createElement('input');
+        dailyButton.type = "button";
+        dailyButton.value = "1D"
+        dailyButton.className = "btn btn-sm btn-secondary"
+
+        dailyButton.style.verticalAlign = "middle"
+        dailyButton.addEventListener('click', () => shoppingList.add(base, ingredient, amount, icon))
+        div.appendChild(dailyButton)
     }
 
-    let currentAmount = BaseEntry.get(Ingredient)
-    if (currentAmount == undefined) {
-        BaseEntry.set(Ingredient, Amount)
-    }
-    else {
-        BaseEntry.set(Ingredient, parseInt(currentAmount) + parseInt(Amount))
-    }
+    let halfButton = document.createElement('input');
+    halfButton.type = "button";
+    halfButton.value = "1/2"
+    halfButton.className = "btn btn-sm btn-secondary"
+    halfButton.style.display = "inline-block"
+    halfButton.style.verticalAlign = "middle"
 
-    UpdateShoppingListDiv()
+    halfButton.addEventListener('click', () => shoppingList.add(base, ingredient, Math.ceil(amount / 2), icon))
+    div.appendChild(halfButton)
+
+    row.appendChild(div)
+    return row
 }
 
-function RemoveIngredientFromShoppingList(Ingredient) {
-    for (let [Key, Value] of ShoppingList) {
-        if (Value.has(Ingredient)) {
-            let BaseEntry = ShoppingList.get(Key)
-            BaseEntry.delete(Ingredient)
-
-            if (BaseEntry.size == 0) {
-                ShoppingList.delete(Key)
-            }
-        }
-    }
-
-    UpdateShoppingListDiv()
-}
-
-function RemoveFromShoppingList(Base, Ingredient, Amount) {
-    let BaseEntry = ShoppingList.get(Base)
-
-    if (BaseEntry == undefined) {
-        return
-    }
-
-    let IngredientEntry = BaseEntry.get(Ingredient)
-    if (IngredientEntry == undefined) {
-        return
-    }
-
-    let currentAmount = IngredientEntry - Amount
-    if (currentAmount <= 0) {
-        BaseEntry.delete(Ingredient)
-
-        if (BaseEntry.size == 0) {
-            ShoppingList.delete(Base)
-        }
-
-    } else {
-        BaseEntry.set(Ingredient, currentAmount)
-    }
-
-    if (BaseEntry.size == 0) {
-        ShoppingList.delete(Base)
-    }
-
-    UpdateShoppingListDiv()
-}
-
+//----------------------------------------------------------------------------------------------------------
 function UpdateShoppingListDiv() {
+    if (document.querySelector('#' + shoppingListId)) {
+        return
+    }
+
     let SelectedView = document.getElementsByClassName("nav-link cursor-pointer py-3 active")
     if (SelectedView == undefined || SelectedView.length == 0) {
         return false
     }
+
     if (SelectedView[0].textContent == "Base") {
         const MainDiv = document.querySelector("main div.container-xxl > div.row:not(gy-3)")
 
-        let Div1 = GetShoppingListTable()
-
-        if (MainDiv.children.length > 2) {
-            if (ShoppingList.size == 0) {
-                MainDiv.removeChild(MainDiv.children[2])
-                return
-            }
-
-            MainDiv.children[2].replaceWith(Div1)
-        }
-        else {
-            if (ShoppingList.size == 0) {
-                return true
-            }
-            MainDiv.appendChild(Div1)
-        }
-    }
-
-    else if (SelectedView[0].textContent == "Exchange") {
-        const MainDiv = document.querySelector("main div.container-xxl div.card-body div.row.gy-3")
-
-        if (ShoppingList.size == 0) {
-            if (MainDiv.children.length <= 2)
-                return
-            MainDiv.removeChild(MainDiv.children[2])
-
-            MainDiv.childNodes.forEach((child) => {
-                child.style.width = "50%"
-            })
-            return false
-        }
-
-        MainDiv.childNodes.forEach((child) => {
-            child.style.width = "40%"
+        let Div1 = getShoppingListTable()
+        shoppingList.addChangeListener(() => {
+            updateShoppingList()
         })
-
-        let Div1 = GetShoppingListTable()
-        Div1.style.width = "20%"
-
-        if (MainDiv.children.length > 2) {
-            MainDiv.children[2].replaceWith(Div1)
-        }
-        else {
-            MainDiv.appendChild(Div1)
-        }
-
+        MainDiv.appendChild(Div1)
+        updateShoppingList()
+    }
+    else if (SelectedView[0].textContent == "Exchange") {
         return modifyExchangeMaterialsList()
     }
 
     return true
 }
 
+//----------------------------------------------------------------------------------------------------------
 function modifyExchangeMaterialsList() {
     const shoppingListHeader = "Shopping List"
     let materialsList = document.querySelector("div[class='row g-4'] div.card-body")
@@ -286,6 +336,8 @@ function modifyExchangeMaterialsList() {
     if (Array.from(header.cells).find(cell => cell.textContent == shoppingListHeader))
         return false;
 
+    filterExchangeList = false
+
     let inputGroup = materialsList.querySelector("div.input-group")
     if (!inputGroup) {
         return false
@@ -293,7 +345,13 @@ function modifyExchangeMaterialsList() {
 
     let filterButton = inputGroup.lastChild.cloneNode(true)
 
-    filterButton.querySelector("input").addEventListener("change", () => {
+    if (filterButton.querySelector("input") == undefined) {
+        return
+    }
+
+    let input = filterButton.querySelector("input")
+    input.checked = false
+    input.addEventListener("change", () => {
         filterExchangeList = !filterExchangeList
         updateMaterialsList()
     })
@@ -314,6 +372,7 @@ function modifyExchangeMaterialsList() {
     return true
 }
 
+//----------------------------------------------------------------------------------------------------------
 function updateMaterialsList() {
     let materialsList = document.querySelector("div[class='row g-4'] div.card-body")
     if (!materialsList) {
@@ -321,20 +380,13 @@ function updateMaterialsList() {
     }
 
     const config = { attributes: false, childList: true, subtree: false };
-    const callback = (mutationList, observer) => {
+    const callback = function (mutationList, observer) {
         for (const mutation of mutationList) {
-            if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
+
+            if (mutation.type === "childList" && mutation.addedNodes.length > 0 && mutation.addedNodes[0].cells != undefined) {
                 const mat = getMatForName(mutation.addedNodes[0].cells[0].textContent) ?? undefined
 
-
-                const TotalShoppingList = ShoppingList.entries().reduce(function (Acc, Entry) {
-                    for (let [Key, Value] of Entry[1]) {
-                        let CurrentAmount = Acc.get(Key) ?? 0
-                        Acc.set(getMatForName(convertSVGMatToMatName(Key)).id, parseInt(Value) + parseInt(CurrentAmount));
-                    }
-
-                    return Acc;
-                }, new Map());
+                const TotalShoppingList = shoppingList.totalIngredients()
 
                 if (filterExchangeList && TotalShoppingList.get(mat.id) == undefined) {
                     mutation.addedNodes[0].style.display = "none"
@@ -347,67 +399,80 @@ function updateMaterialsList() {
                 if (mutation.addedNodes[0].cells.length > 3) {
                     mutation.addedNodes[0].cells[1].remove()
                 }
-
-
                 mutation.addedNodes[0].insertCell(1).textContent = mat ? TotalShoppingList.get(mat.id) ?? " " : " "
             }
         }
-
-        updateMaterialsList()
     };
-
-    const TotalShoppingList = ShoppingList.entries().reduce(function (Acc, Entry) {
-        for (let [Key, Value] of Entry[1]) {
-            let CurrentAmount = Acc.get(Key) ?? 0
-            const mat = getMatForName(convertSVGMatToMatName(Key))
-            if(mat)
-            {
-                Acc.set(mat.id, parseInt(Value) + parseInt(CurrentAmount));
-
-            }
-            else
-            {
-                console.log(`${convertSVGMatToMatName(Key)} : ${Key}`)
-            }
-        }
-
-        return Acc;
-    }, new Map());
 
     const observer = new MutationObserver(callback);
     let table = materialsList.querySelector("tbody")
     observer.observe(table, config);
 
-    let rows = materialsList.querySelectorAll("tbody tr")
+    const updateMaterialsShopingListEntries = function () {
+        let rows = materialsList.querySelectorAll("tbody tr")
+        const TotalShoppingList = shoppingList.totalIngredients()
 
-    for (let row of rows) {
-        const mat = getMatForName(row.cells[0].textContent) ?? undefined
-        if (filterExchangeList && TotalShoppingList.get(mat.id) == undefined) {
-            row.style.display = "none"
-        } else {
-            row.style.display = ""
+        for (let row of rows) {
+            const mat = getMatForName(row.cells[0].textContent) ?? undefined
+            if (filterExchangeList && TotalShoppingList.get(mat.id) == undefined) {
+                row.style.display = "none"
+            } else {
+                row.style.display = ""
+            }
+
+            if (row.cells.length > 3) {
+                row.cells[1].remove()
+            }
+
+            row.insertCell(1).textContent = mat ? TotalShoppingList.get(mat.id) ?? " " : " "
         }
-
-        if (row.cells.length > 3) {
-            row.cells[1].remove()
-        }
-
-        row.insertCell(1).textContent = mat ? TotalShoppingList.get(mat.id) ?? " " : " "
     }
+
+    updateMaterialsShopingListEntries()
+
+    shoppingList.addChangeListener(() => {
+        updateMaterialsShopingListEntries()
+    });
 }
 
-function GetShoppingListTable() {
+//----------------------------------------------------------------------------------------------------------
+function getShoppingListTable() {
     let Div1 = document.createElement('div');
     Div1.className = "col-12 col-md-2";
+    Div1.id = shoppingListId
+    return Div1
+}
+
+//----------------------------------------------------------------------------------------------------------
+function updateShoppingList() {
+    let Div1 = document.querySelector('#' + shoppingListId);
+    if (Div1 == undefined) {
+        return
+    }
+
+    Div1.innerHTML = '';
 
     let Card = document.createElement('div');
     Card.className = "card border-0 mb-4";
     Div1.appendChild(Card)
 
+    let header = document.createElement('div');
+
+    Card.appendChild(header)
     let CardBase = document.createElement('div');
     CardBase.className = "card-header text-body-secondary";
     CardBase.textContent = "Total"
-    Card.appendChild(CardBase)
+    header.appendChild(CardBase)
+
+    let button = document.createElement('input');
+    button.type = "button";
+    button.value = "Clear"
+    button.className = "btn btn-sm btn-secondary"
+    button.addEventListener('click', () => {
+        shoppingList.clear()
+    });
+
+    header.appendChild(button)
 
     let CardTotalEntry = document.createElement('div');
     CardTotalEntry.className = "list-group list-group-flush";
@@ -417,12 +482,11 @@ function GetShoppingListTable() {
     CardTotalEntry.appendChild(TotalTable)
 
     // Total Section
-    const TotalShoppingList = ShoppingList.entries().reduce(function (Acc, Entry) {
+    const TotalShoppingList = shoppingList.entries().reduce(function (Acc, Entry) {
         for (let [Key, Value] of Entry[1]) {
             let CurrentAmount = Acc.get(Key) ?? 0
             Acc.set(Key, parseInt(Value) + parseInt(CurrentAmount));
         }
-
         return Acc;
     }, new Map());
 
@@ -439,23 +503,32 @@ function GetShoppingListTable() {
         button.type = "button";
         button.value = "-"
         button.className = "btn btn-sm btn-secondary"
-        button.addEventListener('click', () => RemoveIngredientFromShoppingList(Ingredient));
+        button.addEventListener('click', function () { shoppingList.removeWholeIngredient(Ingredient) });
 
         let tdRemove = tr.insertCell();
         tdRemove.appendChild(button);
     })
 
-    if(getSelectedPage() == pageEnum.Exchange)
-    {
+    if (getSelectedPage == pageEnum.Exchange) {
         return Div1
     }
 
     // for each base
-    ShoppingList.forEach((BaseValue, Base) => {
+    shoppingList.forEach((BaseValue, Base) => {
         let CardBase = document.createElement('div');
         CardBase.className = "card-header text-body-secondary";
         CardBase.textContent = Base
         Card.appendChild(CardBase)
+
+        let button = document.createElement('input');
+        button.type = "button";
+        button.value = "Clear"
+        button.className = "btn btn-sm btn-secondary"
+        button.addEventListener('click', () => {
+            shoppingList.set(Base, new Map())
+            UpdateShoppingListDiv()
+        });
+        Card.appendChild(button)
 
         let CardBaseEntry = document.createElement('div');
         CardBaseEntry.className = "list-group list-group-flush";
@@ -476,7 +549,7 @@ function GetShoppingListTable() {
             button.type = "button";
             button.value = "-"
             button.className = "btn btn-sm btn-secondary"
-            button.addEventListener('click', () => RemoveFromShoppingList(Base, Ingredient, Amount));
+            button.addEventListener('click', function () { shoppingList.remove(Base, Ingredient, Amount) });
 
             let tdRemove = tr.insertCell();
             tdRemove.appendChild(button);
@@ -484,17 +557,17 @@ function GetShoppingListTable() {
 
         CardBaseEntry.appendChild(Table)
     })
-
-    return Div1
 }
 
+//----------------------------------------------------------------------------------------------------------
 function GetIngredientImage(Ingredient) {
+    const iconString = _iconMap.get(Ingredient)
     let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     let use = document.createElementNS("http://www.w3.org/2000/svg", "use");
 
     svg.setAttribute("width", "24");
     svg.setAttribute("height", "24");
-    use.setAttribute("href", "/assets/sprite-Bex5IPo-.svg#" + Ingredient);
+    use.setAttribute("href", iconString);
 
     svg.appendChild(use);
     svg.className = "io ai-st flex-shrink-0 me-2";
@@ -502,8 +575,12 @@ function GetIngredientImage(Ingredient) {
     return svg
 }
 
+//----------------------------------------------------------------------------------------------------------
 function convertSVGMatToMatName(svgName) {
-    let result = svgName.replace("Basic", '')
+    console.assert(svgName.includes('#'), `Illegial svgName: ${svgName}`)
+    let result = svgName.split("#")[1]
+    result = result.replace("Basic", '')
+    result = result.replace("Bar", '')
     result = result.match(/[A-Z][a-z]+/g).join(" ")
     result = result.trim()
     return result
@@ -525,6 +602,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     document.body.appendChild(tooltipDiv);
 })
 
+//----------------------------------------------------------------------------------------------------------
 function addToolTipToElement(elem) {
     elem.addEventListener("mouseover", function () {
         const rect = elem.getBoundingClientRect();
@@ -536,12 +614,14 @@ function addToolTipToElement(elem) {
     });
 }
 
+//----------------------------------------------------------------------------------------------------------
 function CreateTooltip(text, posX, posY) {
     tooltipDiv.querySelector('.tooltip-inner').textContent = text
     tooltipDiv.style.transform = `translate(${posX}px, ${posY - document.body.getBoundingClientRect().height - tooltipDiv.getBoundingClientRect().height * 0.8}px)`
     tooltipDiv.style.display = "block";
 }
 
+//----------------------------------------------------------------------------------------------------------
 function HideTooltip() {
     tooltipDiv.style.display = "none";
 }
@@ -550,7 +630,7 @@ function HideTooltip() {
 // Utils
 //------------------------------------------------------------------------------------------------------
 let gameData
-setTimeout(async () => {
+setTimeout(async function () {
     const gameDataResponse = await fetch('https://api.g2.galactictycoons.com/gamedata.json', {
         method: 'GET'
     });
@@ -558,6 +638,7 @@ setTimeout(async () => {
     gameData = await gameDataResponse.json()
 }, 10)
 
+//----------------------------------------------------------------------------------------------------------
 function findBuildingFromName(name) {
     const exactEntry = gameData.buildings.find((element) => element.name == name)
 
@@ -566,28 +647,41 @@ function findBuildingFromName(name) {
     return gameData.materials.find((element) => element.name.includes(name))
 }
 
+//----------------------------------------------------------------------------------------------------------
 function getMatForName(matName) {
     const name = matName.trim()
     const exactEntry = gameData.materials.find((element) => element.name == name || element.sName == matName)
 
     if (exactEntry)
         return exactEntry
-    return gameData.materials.find((element) => element.name.includes(name) || element.sName.includes(name))
+    const fuzzyResult = gameData.materials.find((element) => element.name.includes(name) || element.sName.includes(name))
+
+    console.assert(fuzzyResult, `Could not find material: ${matName}`)
+    if (fuzzyResult) {
+        return fuzzyResult
+    }
+
 }
 
+//----------------------------------------------------------------------------------------------------------
 function createElementFromHTML(htmlString) {
     var div = document.createElement('div');
     div.innerHTML = htmlString.trim();
     return div.firstChild;
 }
 
+//----------------------------------------------------------------------------------------------------------
 const pageEnum =
 {
     Exchange: "Exchange",
     Base: "Base",
 }
 
+//----------------------------------------------------------------------------------------------------------
 function getSelectedPage() {
     const selectedPage = document.querySelector("a.nav-link.cursor-pointer.py-3.active span.ms-1").textContent
     return selectedPage
 }
+
+
+
