@@ -2,6 +2,7 @@
 // @name     Galactic Tycoon Shopping List
 // @version  0.1
 // @include  https://*.galactictycoons.com/*
+// updateURL https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ShoppingList.user.js
 // @run-at document-end
 // ==/UserScript==
 
@@ -226,6 +227,33 @@ function UpdateProductionButtons() {
     if (Rows[0].textContent != "Input") {
         return false
     }
+
+    const config = { attributes: false, childList: true, subtree: true };
+    const callback = (mutationList, observer) => {
+
+        for (let record of mutationList) {
+            for (let addedNode of record.addedNodes) {
+                if (addedNode.tagName != "TR") {
+                    continue
+                }
+
+
+                if (addedNode.children.length > 2) {
+                    addedNode.removeChild(addedNode.children[2])
+                }
+
+                const icon = addedNode.cells[0].children[0].children[0].attributes[0].nodeValue
+                const amount = addedNode.cells[1].textContent
+
+                const buttons = getAddingButtons(Base, icon, amount, false);
+                addedNode.cells[1].remove()
+                addedNode.appendChild(buttons, addedNode.cells[1]);
+            }
+        }
+    };
+
+    const observer = new MutationObserver(callback);
+    observer.observe(InputCol[0], config);
 
     Rows[0].cells[0].setAttribute('colspan', "")
     let headerCell = document.createElement('th')
