@@ -2,7 +2,7 @@
 // @name     Galactic Tycoon Shopping List
 // @version  0.1
 // @include  https://*.galactictycoons.com/*
-// updateURL https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ShoppingList.user.js
+// @updateURL https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ShoppingList.user.js
 // @run-at document-end
 // ==/UserScript==
 

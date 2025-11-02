@@ -5,6 +5,11 @@
 // @run-at document-end
 // ==/UserScript==
 
+//--- Settings ---
+
+//--- Constants ---
+const profitHeader = "Profit"
+
 const config = { attributes: false, childList: true, subtree: true };
 const callback = (mutationList, observer) => {
     setTimeout(() => {
@@ -65,14 +70,12 @@ async function updateProductionInfo() {
 
     let RecipeSelectionHeader = RecipeTbody.parentElement.querySelector('thead tr')
 
-    if (RecipeSelectionHeader.lastChild.textContent == "Profit") {
+    if (RecipeSelectionHeader.lastChild.textContent == profitHeader) {
         return
     }
 
     let Cell = RecipeSelectionHeader.insertCell(-1)
-    let th = document.createElement('th');
-    th.textContent = "Profit"
-    Cell.appendChild(th)
+    Cell.textContent = profitHeader
 
     let RecipeRows = RecipeTbody.querySelectorAll('tr.cursor-pointer')
 
@@ -134,13 +137,13 @@ async function updateEncyclpediaInfo() {
         }
 
         let header = SourceDiv.nextSibling.querySelector('thead tr')
-        if (header.lastChild.textContent == "Profit") {
+        if (header.lastChild.textContent == profitHeader) {
             return
         }
 
         let Cell = header.insertCell(-1)
         let newTh = document.createElement('th');
-        newTh.textContent = "Profit"
+        newTh.textContent = profitHeader
         Cell.appendChild(newTh)
 
         let RecipeRows = header.parentElement.parentElement.querySelectorAll('tbody tr')
