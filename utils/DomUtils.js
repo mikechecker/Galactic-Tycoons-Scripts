@@ -18,3 +18,12 @@ function CreateTooltip(text, posX, posY) {
 function HideTooltip() {
     tooltipDiv.style.display = "none";
 }
+
+function addDomObserver(dom, callback, config) {
+    if (config == undefined) {
+        config = { attributes: false, childList: true, subtree: true }
+    }
+
+    const observer = new MutationObserver(callback)
+    observer.observe(dom, config)
+}

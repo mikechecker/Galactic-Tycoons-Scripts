@@ -688,7 +688,6 @@ function getMatForName(matName) {
     if (fuzzyResult) {
         return fuzzyResult
     }
-
 }
 
 //----------------------------------------------------------------------------------------------------------
