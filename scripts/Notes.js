@@ -48,22 +48,3 @@ function getNotes() {
 }
 
 
-function ConvertTimeToHours(_time) {
-    const Splits = _time.split(' ');
-    if (Splits[0].endsWith('h')) {
-        const Hours = Splits[0].substring(0, Splits[0].length - 1);
-        const Minutes = Splits[1].substring(0, Splits[1].length - 1);
-        return Number(Hours) + Minutes / 60;
-    }
-
-    const Minutes = Splits[0].substring(0, Splits[0].length - 1);
-    return Minutes / 60;
-}
-
-function GetMat(MatName, ExchangePrices) {
-    const ExactEntry = ExchangePrices.find((element) => element.matName == ingredient)
-
-    if (ExactEntry)
-        return ExactEntry
-    return ExchangePrices.find((element) => element.matName.includes(ingredient))
-}

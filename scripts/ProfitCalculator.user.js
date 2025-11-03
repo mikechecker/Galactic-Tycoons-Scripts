@@ -1,7 +1,8 @@
 // ==UserScript==
 // @name     Galactic Tyocoons Profit Calculator
-// @version  0.1
+// @version  0.1.1
 // @include  https://*.galactictycoons.com/*
+// @downloadURL https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ProfitCalculator.user.js
 // @updateURL https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ProfitCalculator.user.js
 // @require https://raw.githubusercontent.com/mikechecker/Galactic-Tycoons-Scripts/refs/heads/main/utils/DomUtils.js
 // @run-at document-end
@@ -194,7 +195,7 @@ function getProfitCell(buildingName, ingredients, time, resultName, resultAmount
             return
         }
 
-        return acc + price.avgPrice * parseInt(entry[1])
+        return acc + price.currentPrice * parseInt(entry[1])
 
     }, 0)
 
@@ -231,7 +232,7 @@ function getProfitCell(buildingName, ingredients, time, resultName, resultAmount
             return getMissingDataContent()
         }
 
-        costPerHour += exchangeEntry?.avgPrice * value / 24 / 100
+        costPerHour += exchangeEntry?.currentPrice * value / 24 / 100
     }
 
     totalCost += costPerHour * time
@@ -242,7 +243,7 @@ function getProfitCell(buildingName, ingredients, time, resultName, resultAmount
         return getMissingDataContent()
     }
 
-    const price = exchangeEntry.avgPrice
+    const price = exchangeEntry.currentPrice
 
     let td = document.createElement('td');
     td.textContent = Math.round((price * resultAmount - totalCost) / time / 100).toLocaleString() + "$"
