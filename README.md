@@ -1,16 +1,5 @@
-# Installation
-Tempermonkey scripts are scripts that run in your web browser on specific websites and adjust the site. They can add or remove button, text, etc. 
-To install any scripts you need to install the extension [Tempermonkey](https://www.tampermonkey.net/).
-
-Afterwards go to the script you want to install. Click on one of the links to any script you like below and Tempermonkey will ask you if you want to install it.
-
-## Installation Links
-These are the scripts that are in a usable state.
-- [ShoppingList](https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ShoppingList.user.js)
-- [Profit Calculator](https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ProfitCalculator.user.js)
-
 # GalacticTycoonsScripts
-Tempermonkeytt scripts for the game [Galactic Tycoons](galactictycoons.com). These scripts are in an very early state of development
+Tempermonkey scripts for the game [Galactic Tycoons](galactictycoons.com). These scripts are in an very early state of development
 
 ## ShoppingList.js
 [Install](https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ShoppingList.user.js)
@@ -27,4 +16,13 @@ The list is grouped by Bases and is also integrated in the Exchange tab.
 [Install](https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ProfitCalculator.user.js)
 Adds profit per hour to all recipes. The calculator uses the current price on the exchange
 
+# Installation
+Tempermonkey scripts are scripts that run in your web browser on specific websites and adjust the site. They can add or remove button, text, etc. 
+To install any scripts you need to install the extension [Tempermonkey](https://www.tampermonkey.net/).
 
+Afterwards go to the script you want to install. Click on one of the links to any script you like below and Tempermonkey will ask you if you want to install it.
+
+## Installation Links
+These are the scripts that are in a usable state.
+- [ShoppingList](https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ShoppingList.user.js)
+- [Profit Calculator](https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ProfitCalculator.user.js)
