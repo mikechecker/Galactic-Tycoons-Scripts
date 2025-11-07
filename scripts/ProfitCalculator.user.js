@@ -195,7 +195,7 @@ function getProfitCell(buildingName, ingredients, time, resultName, resultAmount
             return
         }
 
-        return acc + price.currentPrice * parseInt(entry[1])
+        return acc + price.currentPrice * parseInt(entry[1]) / 100
 
     }, 0)
 
@@ -215,9 +215,9 @@ function getProfitCell(buildingName, ingredients, time, resultName, resultAmount
         gameData.workers[index].consumables.forEach(consumable => {
             let existing = acc.get(consumable.matId)
             if (existing) {
-                existing += consumable.amount * workersAmount / 1000
+                existing += consumable.amount * workersAmount
             } else {
-                acc.set(consumable.matId, consumable.amount * workersAmount / 1000)
+                acc.set(consumable.matId, consumable.amount * workersAmount)
             }
         })
         return acc
@@ -232,7 +232,7 @@ function getProfitCell(buildingName, ingredients, time, resultName, resultAmount
             return getMissingDataContent()
         }
 
-        costPerHour += exchangeEntry?.currentPrice * value / 24 / 100
+        costPerHour += exchangeEntry?.currentPrice * (value/1000) / 24 / 100
     }
 
     totalCost += costPerHour * time
@@ -243,10 +243,10 @@ function getProfitCell(buildingName, ingredients, time, resultName, resultAmount
         return getMissingDataContent()
     }
 
-    const price = exchangeEntry.currentPrice
+    const price = exchangeEntry.currentPrice / 100
 
     let td = document.createElement('td');
-    td.textContent = Math.round((price * resultAmount - totalCost) / time / 100).toLocaleString() + "$"
+    td.textContent = Math.round((price * resultAmount - totalCost) / time ).toLocaleString() + "$"
     return td
 }
 
