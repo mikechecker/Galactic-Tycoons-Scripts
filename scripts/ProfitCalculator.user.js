@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name     Galactic Tyocoons Profit Calculator
-// @version  0.1.1
+// @version  0.1.2
 // @include  https://*.galactictycoons.com/*
 // @downloadURL https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ProfitCalculator.user.js
 // @updateURL https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ProfitCalculator.user.js
