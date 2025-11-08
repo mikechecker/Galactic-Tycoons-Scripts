@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name     Galactic Tycoon Shopping List
-// @version  0.1.3
+// @version  0.1.4
 // @include  https://*.galactictycoons.com/*
 // @updateURL https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ShoppingList.user.js
 // @downloadURL https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ShoppingList.user.js
@@ -328,6 +328,7 @@ function getAddingButtons(base, icon, amount, useAllButtons = false) {
 
 //----------------------------------------------------------------------------------------------------------
 function UpdateShoppingListDiv() {
+    console.log(shoppingList)
     if (document.querySelector('#' + shoppingListId)) {
         return
     }
@@ -611,8 +612,8 @@ function convertSVGMatToMatName(svgName) {
     let result = svgName.split("#")[1]
 
     // handle special cases
-    if(result = 'ReinforcedTruss')
-    return "Truss"
+    if (result == 'ReinforcedTruss')
+        return "Truss"
 
     result = result.replace("Basic", '')
     result = result.replace("Bar", '')
