@@ -238,16 +238,15 @@ function UpdateProductionButtons() {
                     continue
                 }
 
-
                 if (addedNode.children.length > 2) {
-                    addedNode.removeChild(addedNode.children[2])
+                    addedNode.removeChild(addedNode.children[-1])
                 }
 
                 const icon = addedNode.cells[0].children[0].children[0].attributes[0].nodeValue
                 const amount = addedNode.cells[1].textContent
 
                 const buttons = getAddingButtons(Base, icon, amount, false);
-                addedNode.cells[1].remove()
+                //addedNode.cells[1].remove()
                 addedNode.appendChild(buttons, addedNode.cells[1]);
             }
         }
@@ -271,14 +270,14 @@ function UpdateProductionButtons() {
         let Row = Rows[i]
 
         if (Row.children.length > 2) {
-            Row.removeChild(Row.children[2])
+            Row.removeChild(Row.children[-1])
         }
 
         const icon = Row.cells[0].children[0].children[0].attributes[0].nodeValue
         const amount = Row.cells[1].textContent
 
         const buttons = getAddingButtons(Base, icon, amount, false);
-        Row.cells[1].remove()
+        //Row.cells[1].remove()
         Row.appendChild(buttons, Row.cells[1]);
     }
 
@@ -287,6 +286,8 @@ function UpdateProductionButtons() {
 
 //----------------------------------------------------------------------------------------------------------
 function getAddingButtons(base, icon, amount, useAllButtons = false) {
+    amount = amount.replace('.', '')
+    amount = amount.replace(',', '')
     const ingredient = convertSVGMatToMatName(icon)
 
     let row = document.createElement('td');
@@ -296,9 +297,9 @@ function getAddingButtons(base, icon, amount, useAllButtons = false) {
     // div.style.flexWrap = "nowrap"
     // div.style.display = "inline-block"
 
-    let amountText = document.createElement('a');
-    amountText.className = "text-end"
-    div.appendChild(amountText)
+    //let amountText = document.createElement('a');
+    //amountText.className = "text-end"
+    //div.appendChild(amountText)
 
     if (useAllButtons) {
         let dailyButton = document.createElement('input');
@@ -608,6 +609,11 @@ function GetIngredientImage(Ingredient) {
 function convertSVGMatToMatName(svgName) {
     console.assert(svgName.includes('#'), `Illegial svgName: ${svgName}`)
     let result = svgName.split("#")[1]
+
+    // handle special cases
+    if(result = 'ReinforcedTruss')
+    return "Truss"
+
     result = result.replace("Basic", '')
     result = result.replace("Bar", '')
     result = result.match(/[A-Z][a-z]+/g).join(" ")
