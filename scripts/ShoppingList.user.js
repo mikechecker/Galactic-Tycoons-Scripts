@@ -286,7 +286,6 @@ function UpdateProductionButtons() {
 
 //----------------------------------------------------------------------------------------------------------
 function getAddingButtons(base, icon, amount, useAllButtons = false) {
-    amount = amount.replace('.', '')
     amount = amount.replace(',', '')
     const ingredient = convertSVGMatToMatName(icon)
 
