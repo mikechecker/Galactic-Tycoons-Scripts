@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name     Galactic Tycoon Shopping List
-// @version  0.1.4
+// @version  0.1.5
 // @include  https://*.galactictycoons.com/*
 // @updateURL https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ShoppingList.user.js
 // @downloadURL https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ShoppingList.user.js
@@ -327,7 +327,6 @@ function getAddingButtons(base, icon, amount, useAllButtons = false) {
 
 //----------------------------------------------------------------------------------------------------------
 function UpdateShoppingListDiv() {
-    console.log(shoppingList)
     if (document.querySelector('#' + shoppingListId)) {
         return
     }

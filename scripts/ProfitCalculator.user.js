@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name     Galactic Tyocoons Profit Calculator
-// @version  0.1.2
+// @version  0.1.3
 // @include  https://*.galactictycoons.com/*
 // @downloadURL https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ProfitCalculator.user.js
 // @updateURL https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ProfitCalculator.user.js
@@ -232,7 +232,7 @@ function getProfitCell(buildingName, ingredients, time, resultName, resultAmount
             return getMissingDataContent()
         }
 
-        costPerHour += exchangeEntry?.currentPrice * (value/1000) / 24 / 100
+        costPerHour += exchangeEntry?.currentPrice * (value / 1000) / 24 / 100
     }
 
     totalCost += costPerHour * time
@@ -245,22 +245,39 @@ function getProfitCell(buildingName, ingredients, time, resultName, resultAmount
 
     const price = exchangeEntry.currentPrice / 100
 
+    console.log(`(${price} * ${resultAmount} - ${totalCost}) / ${time}$`)
+
     let td = document.createElement('td');
-    td.textContent = Math.round((price * resultAmount - totalCost) / time ).toLocaleString() + "$"
+    td.textContent = Math.round((price * resultAmount - totalCost) / time).toLocaleString() + "$"
     return td
 }
 
 //------------------------------------------------------------------------------------------------------
 function ConvertTimeToHours(_time) {
-    const Splits = _time.split(' ');
-    if (Splits[0].endsWith('h')) {
-        const Hours = Splits[0].substring(0, Splits[0].length - 1);
-        const Minutes = Splits[1].substring(0, Splits[1].length - 1);
-        return Number(Hours) + Minutes / 60;
+    const splits = _time.split(' ');
+    let timeInMinutes = 0
+
+    for (const split of splits) {
+
+        if (split.endsWith('d')) {
+            const parsedTime = parseInt(split.substring(0, split.length - 1))
+
+            timeInMinutes += parsedTime * 24;
+        }
+        if (split.endsWith('h')) {
+            const parsedTime = parseInt(split.substring(0, split.length - 1))
+
+            timeInMinutes += parsedTime;
+        }
+
+        if (split.endsWith('m')) {
+            const parsedTime = parseInt(split.substring(0, split.length - 1))
+
+            timeInMinutes += parsedTime / 60;
+        }
     }
 
-    const Minutes = Splits[0].substring(0, Splits[0].length - 1);
-    return Minutes / 60;
+    return timeInMinutes;
 }
 
 //------------------------------------------------------------------------------------------------------
