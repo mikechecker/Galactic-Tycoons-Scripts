@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name     Galactic Tycoon Shopping List
-// @version  0.1.5
+// @version  0.1.6
 // @include  https://*.galactictycoons.com/*
 // @updateURL https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ShoppingList.user.js
 // @downloadURL https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ShoppingList.user.js
@@ -273,10 +273,7 @@ function UpdateProductionButtons() {
             Row.removeChild(Row.children[-1])
         }
 
-        const icon = Row.cells[0].children[0].children[0].attributes[0].nodeValue
-        const amount = Row.cells[1].textContent
-
-        const buttons = getAddingButtons(Base, icon, amount, false);
+        const buttons = getAddingButtons(Base, Row, false);
         //Row.cells[1].remove()
         Row.appendChild(buttons, Row.cells[1]);
     }
@@ -285,11 +282,8 @@ function UpdateProductionButtons() {
 }
 
 //----------------------------------------------------------------------------------------------------------
-function getAddingButtons(base, icon, amount, useAllButtons = false) {
-    amount = amount.replace(',', '')
-    const ingredient = convertSVGMatToMatName(icon)
-
-    let row = document.createElement('td');
+function getAddingButtons(base, row, useAllButtons = false) {
+    let rowElement = document.createElement('td');
 
     let div = document.createElement('div');
     // div.style.textAlign = "center"
@@ -307,7 +301,14 @@ function getAddingButtons(base, icon, amount, useAllButtons = false) {
         dailyButton.className = "btn btn-sm btn-secondary"
 
         dailyButton.style.verticalAlign = "middle"
-        dailyButton.addEventListener('click', () => shoppingList.add(base, ingredient, amount, icon))
+        dailyButton.addEventListener('click', () => {
+            const icon = row.cells[0].children[0].children[0].attributes[0].nodeValue
+            let amount = row.cells[1].textContent
+            amount = amount.replace(',', '')
+            const ingredient = convertSVGMatToMatName(icon)
+            shoppingList.add(base, ingredient, amount, icon)
+
+        })
         div.appendChild(dailyButton)
     }
 
@@ -318,11 +319,19 @@ function getAddingButtons(base, icon, amount, useAllButtons = false) {
     halfButton.style.display = "inline-block"
     halfButton.style.verticalAlign = "middle"
 
-    halfButton.addEventListener('click', () => shoppingList.add(base, ingredient, Math.ceil(amount / 2), icon))
+    halfButton.addEventListener('click', () => {
+        const icon = row.cells[0].children[0].children[0].attributes[0].nodeValue
+        let amount = row.cells[1].textContent
+        amount = amount.replace(',', '')
+        const ingredient = convertSVGMatToMatName(icon)
+
+        shoppingList.add(base, ingredient, Math.ceil(amount / 2), icon)
+    })
+
     div.appendChild(halfButton)
 
-    row.appendChild(div)
-    return row
+    rowElement.appendChild(div)
+    return rowElement
 }
 
 //----------------------------------------------------------------------------------------------------------
