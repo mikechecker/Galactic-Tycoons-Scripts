@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name     Galactic Tycoon Shopping List
-// @version  0.1.6
+// @version  0.1.7
 // @include  https://*.galactictycoons.com/*
 // @updateURL https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ShoppingList.user.js
 // @downloadURL https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ShoppingList.user.js
@@ -242,10 +242,7 @@ function UpdateProductionButtons() {
                     addedNode.removeChild(addedNode.children[-1])
                 }
 
-                const icon = addedNode.cells[0].children[0].children[0].attributes[0].nodeValue
-                const amount = addedNode.cells[1].textContent
-
-                const buttons = getAddingButtons(Base, icon, amount, false);
+                 const buttons = getAddingButtons(Base, Row, false);
                 //addedNode.cells[1].remove()
                 addedNode.appendChild(buttons, addedNode.cells[1]);
             }
