@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name     Galactic Tycoon Shopping List
-// @version  0.1.7
+// @version  0.1.8
 // @include  https://*.galactictycoons.com/*
 // @updateURL https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ShoppingList.user.js
 // @downloadURL https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ShoppingList.user.js
@@ -198,10 +198,9 @@ function UpdateConsumptionButtons() {
 
         let td = Row.insertCell(-1)
 
-        const icon = Row.cells[0].children[0].children[0].children[0].attributes[0].nodeValue
-        const amount = Row.cells[2].textContent
-
-        td.appendChild(getAddingButtons(Base, icon, amount, true));
+        const icon = Row.cells[0].children[0].children[0].children[0].attributes[0]
+        const amount = Row.cells[2]
+        td.appendChild(getAddingButtons(Base, amount, icon, true));
     }
 
     return true
@@ -242,7 +241,9 @@ function UpdateProductionButtons() {
                     addedNode.removeChild(addedNode.children[-1])
                 }
 
-                 const buttons = getAddingButtons(Base, Row, false);
+                const icon = row.cells[0].children[0].children[0].attributes[0]
+                let amount = row.cells[1]
+                const buttons = getAddingButtons(Base, amount, icon, false);
                 //addedNode.cells[1].remove()
                 addedNode.appendChild(buttons, addedNode.cells[1]);
             }
@@ -264,22 +265,24 @@ function UpdateProductionButtons() {
     }
 
     for (let i = 1; i < Rows.length; i++) {
-        let Row = Rows[i]
+        let row = Rows[i]
 
-        if (Row.children.length > 2) {
-            Row.removeChild(Row.children[-1])
+        if (row.children.length > 2) {
+            row.removeChild(Row.children[-1])
         }
 
-        const buttons = getAddingButtons(Base, Row, false);
+        const icon = row.cells[0].children[0].children[0].attributes[0]
+        let amount = row.cells[1]
+        const buttons = getAddingButtons(Base, amount, icon, false);
         //Row.cells[1].remove()
-        Row.appendChild(buttons, Row.cells[1]);
+        row.appendChild(buttons, row.cells[1]);
     }
 
     return true
 }
 
 //----------------------------------------------------------------------------------------------------------
-function getAddingButtons(base, row, useAllButtons = false) {
+function getAddingButtons(base, amountCell, iconCell, useAllButtons = false) {
     let rowElement = document.createElement('td');
 
     let div = document.createElement('div');
@@ -299,8 +302,8 @@ function getAddingButtons(base, row, useAllButtons = false) {
 
         dailyButton.style.verticalAlign = "middle"
         dailyButton.addEventListener('click', () => {
-            const icon = row.cells[0].children[0].children[0].attributes[0].nodeValue
-            let amount = row.cells[1].textContent
+            const icon = iconCell.nodeValue
+            let amount = amountCell.textContent
             amount = amount.replace(',', '')
             const ingredient = convertSVGMatToMatName(icon)
             shoppingList.add(base, ingredient, amount, icon)
@@ -317,8 +320,8 @@ function getAddingButtons(base, row, useAllButtons = false) {
     halfButton.style.verticalAlign = "middle"
 
     halfButton.addEventListener('click', () => {
-        const icon = row.cells[0].children[0].children[0].attributes[0].nodeValue
-        let amount = row.cells[1].textContent
+        const icon = iconCell.nodeValue
+        let amount = amountCell.textContent
         amount = amount.replace(',', '')
         const ingredient = convertSVGMatToMatName(icon)
 
