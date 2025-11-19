@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name     Galactic Tyocoons Profit Calculator
-// @version  0.1.3
+// @version  0.1.4
 // @include  https://*.galactictycoons.com/*
 // @downloadURL https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ProfitCalculator.user.js
 // @updateURL https://github.com/mikechecker/Galactic-Tycoons-Scripts/raw/refs/heads/main/scripts/ProfitCalculator.user.js
@@ -16,7 +16,7 @@ const profitHeader = "Profit"
 const config = { attributes: false, childList: true, subtree: true };
 const callback = (mutationList, observer) => {
     setTimeout(() => {
-        if (exchangePrices.length == 0) {
+        if (exchangePrices == null || exchangePrices.size == 0) {
             return
         }
 
@@ -340,15 +340,15 @@ function getSelectedPage() {
 // Exchange Cache
 //------------------------------------------------------------------------------------------------------
 //--- Settings --
-const cookieNameExchangeData = "exchange-data"
-const maxLifetimeSeconds = 60
+const priceKey = "matPrices"
+const priceTimestamp = "matPricesTime"
+const maxLifetimeSeconds = 300
 // all values in ms
 const checkIntervalOffsetMin = 0
 const checkIntervalOffsetMax = 500
 //--- Settings end ---
 
-let exchangePrices = []
-
+let exchangePrices = new Map()
 setTimeout(async function () { await updateExchangeData() }, Math.max(Math.floor(Math.random() * checkIntervalOffsetMax)), checkIntervalOffsetMin)
 
 setInterval(async function () {
@@ -369,33 +369,45 @@ async function updateExchangeData() {
     // Fallback if API is down or bugdet is exceeded
     if (exchangeResponse.status != 200) {
         exchangePrices = await getData()
+        console.log(exchangeResponse)
+        const timeStamp = new Date(new Date().getTime() + 5 * 60000).getTime()
+        localStorage.setItem(priceTimestamp, JSON.stringify(timeStamp));
         return
     }
 
     let exchange = await exchangeResponse.json()
 
-    setData(exchange)
+    setData(exchange.prices)
 }
 
+//------------------------------------------------------------------------------------------------------
 function setData(data) {
-    exchangePrices = data.prices;
-    data.timeStamp = Date.now()
-    sessionStorage.setItem(cookieNameExchangeData, JSON.stringify(data));
+    let prices = new Map()
+    data.forEach((element) => prices.set(element.matId, element))
+    exchangePrices = prices;
+    const timeStamp = Date.now()
+    localStorage.setItem(priceTimestamp, JSON.stringify(timeStamp));
+    localStorage.setItem(priceKey, JSON.stringify(Object.fromEntries(prices)));
 }
 
+//------------------------------------------------------------------------------------------------------
 function getData() {
-    const sessionData = JSON.parse(sessionStorage.getItem(cookieNameExchangeData))
-    return sessionData.prices;
+
+    let sessionData = new Map()
+    const prices = Object.entries(JSON.parse(localStorage.getItem(priceKey)))
+    prices.forEach((element) => sessionData.set(parseInt(element[0]), element[1]))
+    return sessionData;
 }
 
+//------------------------------------------------------------------------------------------------------
 function getLastUpdateTime() {
-    const sessionData = JSON.parse(sessionStorage.getItem(cookieNameExchangeData))
-    return new Date(sessionData?.timeStamp);
+    const sessionData = JSON.parse(localStorage.getItem(priceTimestamp))
+    return new Date(sessionData);
 }
 
 //------------------------------------------------------------------------------------------------------
 function getExchangeEntry(matId) {
-    return exchangePrices.find((element) => element.matId == matId)
+    return exchangePrices.get(matId)
 }
 
 //------------------------------------------------------------------------------------------------------
@@ -406,7 +418,18 @@ function getExchangeEntryFromName(matName) {
         return undefined
     }
 
-    return exchangePrices.find((element) => element.matId == mat.id && (element.avgPrice >= 0 || element.currentPrice >= 0))
+    if(exchangePrices.has(mat.id) == false)
+    {
+        console.log("Could not find mat")
+        console.log(mat)
+        console.log(exchangePrices)
+    }
+    
+    const price = exchangePrices.get(mat.id);
+   if (price.avgPrice <= 0 && price.currentPrice <= 0) {
+        return undefined
+    }
+    return price
 }
 
 //------------------------------------------------------------------------------------------------------
