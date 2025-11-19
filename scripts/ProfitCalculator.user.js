@@ -245,7 +245,7 @@ function getProfitCell(buildingName, ingredients, time, resultName, resultAmount
 
     const price = exchangeEntry.currentPrice / 100
 
-    console.log(`(${price} * ${resultAmount} - ${totalCost}) / ${time}$`)
+    //console.log(`(${price} * ${resultAmount} - ${totalCost}) / ${time}$`)
 
     let td = document.createElement('td');
     td.textContent = Math.round((price * resultAmount - totalCost) / time).toLocaleString() + "$"
